@@ -10,7 +10,7 @@ To compile and run the program, follow these steps:
 2. **Execute default premake4/make combination:** 
 
     ```bash
-    $ cd /path/to/A0
+    $ cd A0
     $ premake4 gmake
     $ make
     $ ./A0
