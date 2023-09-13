@@ -212,16 +212,17 @@ void A0::guiLogic()
 			m_mouse_GL_coordinate = dvec2(0.0);
 			m_mouseButtonActive = false;
 		}
-		// Retrieve red color component from slider and store in the first element of
-		// m_shape_color.
+		// Retrieve red, green and blue color components from sliders and store in the m_shape_color.
 		ImGui::SliderFloat("Red Channel", &m_shape_color.r, 0.0f, 1.0f);
 		ImGui::SliderFloat("Green Channel", &m_shape_color.g, 0.0f, 1.0f);
 		ImGui::SliderFloat("Blue Channel", &m_shape_color.b, 0.0f, 1.0f);
 
 		// Add more gui elements here here ...
+		// Create sliders for rotation angle and shape size.
 		ImGui::SliderFloat("Rotation Angle", &m_shape_rotation, 0.0f, 2 * PI);
 		ImGui::SliderFloat("Shape Size", &m_shape_size, 0.0f, 10.0f);
 
+		// Create text labels to display the position of the triangle.
 		ImGui::Text( "X: %.1f, Y:  %.1f", m_shape_translation.x, m_shape_translation.y);
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -369,6 +370,7 @@ bool A0::keyInputEvent(int key, int action, int mods) {
 			eventHandled = true;
 		}
 		if (key == GLFW_KEY_R) {
+			cout << "R key pressed" << endl;
 			m_shape_color = glm::vec3(1.0f, 1.0f, 1.0f);
 			m_shape_translation = vec2(0.0f);
 			m_shape_size = 1.0f;
