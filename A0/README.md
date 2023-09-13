@@ -16,7 +16,7 @@ To compile and run the program, follow these steps:
     $ ./A0
     ```
 
-I successfully completed this assignment on a Mac M1, and tested the code in the lab machine ....
+I've accomplished this assignment on a Mac M1 and verified the code's functionality on the lab machine gl02.
 
 ---
 
