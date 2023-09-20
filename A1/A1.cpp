@@ -438,7 +438,7 @@ void A1::initLight() {
 void A1::appLogic()
 {
 	if (releaseX != -2.0f) {
-		rotation = lastX - releaseX;
+		rotation = (lastX - releaseX) * 0.01;
 		releaseX = -2.0f;
 	}
 
