@@ -605,10 +605,10 @@ void A1::draw()
 
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
-		
-		rotation *= 0.9995;
 
 		view = glm::rotate(view, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+		
+		rotation *= 0.9995;
 
 		glm::vec3 cameraPosition(glm::inverse(view)[3]);
 		// glm::vec3 cameraPosition = {0,0,0};
@@ -727,7 +727,7 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		// The user clicked in the window.  If it's the left
 		// mouse button, initiate a rotation.
-		if (button == GLFW_MOUSE_BUTTON_LEFT && actions == GLFW_RELEASE) {
+		if (rotation != 0 && button == GLFW_MOUSE_BUTTON_LEFT && actions == GLFW_RELEASE) {
 			releaseX = lastX;
 		} else {
 			rotation = 0.0f;
