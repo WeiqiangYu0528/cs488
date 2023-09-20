@@ -4,6 +4,8 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <vector>
+#include <utility>
 
 #include <sys/types.h>
 #include <unistd.h>
