@@ -198,10 +198,10 @@ void A1::initFloor() {
 	std::vector<std::pair<int, int>> dirs{{0,0}, {DIM, 0}, {0, DIM}, {DIM, DIM}};
 
 	size_t ct = 0;
-	for( auto&[x, z]: dirs ) {
-		verts[ ct++ ] = static_cast<float>(x);
+	for( auto& dir: dirs ) {
+		verts[ ct++ ] = static_cast<float>(dir.first);
 		verts[ ct++ ] = 0.0;
-		verts[ ct++ ] = static_cast<float>(z);
+		verts[ ct++ ] = static_cast<float>(dir.second);
 		verts[ ct++ ] = 0.0f;
 		verts[ ct++ ] = 1.0f;
 		verts[ ct++ ] = 0.0f;
@@ -495,19 +495,19 @@ void A1::appLogic()
 {
 	if (left_times > 0) {
 		left_times--;
-		sphere_positionf[0] -= 0.025f;
+		sphere_positionf[0] -= 0.01f;
 	}
 	if (right_times > 0) {
 		right_times--;
-		sphere_positionf[0] += 0.025f;
+		sphere_positionf[0] += 0.01f;
 	}
 	if (up_times > 0) {
 		up_times--;
-		sphere_positionf[2] -= 0.025f;
+		sphere_positionf[2] -= 0.01f;
 	}
 	if (down_times > 0) {
 		down_times--;
-		sphere_positionf[2] += 0.025f;
+		sphere_positionf[2] += 0.01f;
 	}
 	int x = static_cast<int>(sphere_positionf[2]);
 	int y = static_cast<int>(sphere_positionf[0]);
@@ -793,45 +793,45 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		if (key == GLFW_KEY_LEFT && sphere_positioni[0] > 0) {
 			if (m->getValue(sphere_positioni[2], sphere_positioni[0] - 1) == 1) {
 				if ((mods & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT) {
-					left_times += 40;
+					left_times += 100;
 					sphere_positioni[0] -= 1;
 				}
 			} else {
 				sphere_positioni[0] -= 1;
-				left_times += 40;
+				left_times += 100;
 			}
 		}
 		if (key == GLFW_KEY_RIGHT && sphere_positioni[0] < DIM - 1) {
 			if (m->getValue(sphere_positioni[2], sphere_positioni[0] + 1) == 1) {
 				if ((mods & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT) {
-					right_times += 40;
+					right_times += 100;
 					sphere_positioni[0] += 1;
 				}
 			} else {
 				sphere_positioni[0] += 1;
-				right_times += 40;
+				right_times += 100;
 			}
 		}
 		if (key == GLFW_KEY_UP && sphere_positioni[2] > 0) {
 			if (m->getValue(sphere_positioni[2] - 1, sphere_positioni[0]) == 1) {
 				if ((mods & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT) {
-					up_times += 40;
+					up_times += 100;
 					sphere_positioni[2] -= 1;
 				}		
 			} else {
 				sphere_positioni[2] -= 1;
-				up_times += 40;
+				up_times += 100;
 			}
 		}
 		if (key == GLFW_KEY_DOWN && sphere_positioni[2] < DIM - 1) {
 			if (m->getValue(sphere_positioni[2] + 1, sphere_positioni[0]) == 1) {
 				if ((mods & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT) {
-					down_times += 40;
+					down_times += 100;
 					sphere_positioni[2] += 1;
 				}
 			} else {
 				sphere_positioni[2] += 1;
-				down_times += 40;
+				down_times += 100;
 			}
 		}
 	}
