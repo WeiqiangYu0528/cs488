@@ -547,6 +547,8 @@ void A1::draw()
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
 		glClearColor( floor_colour[0], floor_colour[1], floor_colour[2], 1.0 );
+		
+		rotation *= 0.9995;
 
 		view = glm::rotate(view, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -640,7 +642,11 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		// rotation amount, and maybe the previous X position (so 
 		// that you can rotate relative to the *change* in X.
 		if (ImGui::IsMouseDragging()) {
-			rotation = xPos - lastX;
+			rotation = (xPos - lastX) * 0.05;
+		}
+		if (releaseX != -2.0f) {
+			rotation = (xPos - releaseX) * 0.05;
+			releaseX = -2.0f;
 		}
 		lastX = xPos;
 	}
