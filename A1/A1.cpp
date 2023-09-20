@@ -748,10 +748,10 @@ bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 
 	bool eventHandled(false);
 	fov -= (float)yOffSet;
-    if (fov < 1.0f)
-        fov = 1.0f;
+    if (fov < 5.0f)
+        fov = 5.0f;
     if (fov > 45.0f)
-        fov = 45.0f; 
+        fov = 45.0f;
 	proj = glm::perspective(glm::radians(fov), float( m_framebufferWidth ) / float( m_framebufferHeight ), 1.0f, 1000.0f);
 	return eventHandled;
 }
@@ -882,7 +882,6 @@ void A1::reset() {
 
 void A1::dig() {
 	m->digMaze();
-	m->printMaze();
 	initMaze();
 	sphere_positioni[0] = m->getStartCell();
 	sphere_positioni[1] = 0;
