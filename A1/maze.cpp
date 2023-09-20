@@ -88,6 +88,27 @@ void Maze::printMaze() {
 	}
 }
 
+int Maze::getBlockNumber() {
+	int count = 0;
+	for (int i = 0; i < m_dim; i++) {
+		for (int j = 0; j < m_dim; j++) { 
+			if (getValue(i,j) == 1 ) {
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
+int Maze::getStartCell() {
+	for (int i = 0; i < m_dim; i++) {
+		if (getValue(0,i) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 
 void Maze::recDigMaze(int r, int c) {
 	int* p;

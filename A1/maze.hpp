@@ -18,6 +18,8 @@ public:
 
 	void digMaze();
 	void printMaze(); // for debugging
+	int getBlockNumber();
+	int getStartCell();
 private:
 	size_t m_dim;
 	int *m_values;
