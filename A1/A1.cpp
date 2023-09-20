@@ -36,15 +36,15 @@ glm::vec3 lightPos{0.0f, 10.0f, 0.0f};
 A1::A1()
 	: current_col( 0 )
 {
-	floor_colour[0] = 0.3f;
-	floor_colour[1] = 0.5f;
-	floor_colour[2] = 0.7f;
+	floor_colour[0] = 0.23f;
+	floor_colour[1] = 0.38f;
+	floor_colour[2] = 0.53f;
 	sphere_colour[0] = 1.0f;
 	sphere_colour[1] = 1.0f;
 	sphere_colour[2] = 1.0f;
-	maze_colour[0] = 0.0f;
-	maze_colour[1] = 0.0f;
-	maze_colour[2] = 0.0f;
+	maze_colour[0] = 0.75f;
+	maze_colour[1] = 0.75f;
+	maze_colour[2] = 0.75f;
 	m = new Maze(DIM);
 }
 
@@ -101,6 +101,7 @@ void A1::init()
 	M_light_uni = m_light_shader.getUniformLocation( "M" );
 
 	initGrid();
+	initFloor();
 	initSphere();
 	initLight();
 
@@ -173,6 +174,61 @@ void A1::initGrid()
     glEnableVertexAttribArray(norAttrib);
 
 	// glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0 );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+
+	CHECK_GL_ERRORS;
+}
+
+void A1::initFloor() {
+	size_t sz1 = 6 * 4;
+	size_t sz2 = 6;
+	float *verts = new float[ sz1 ];
+	GLuint indices[] = {
+		0, 1, 2,
+		1, 2, 3
+	};
+	std::vector<std::pair<int, int>> dirs{{0,0}, {DIM, 0}, {0, DIM}, {DIM, DIM}};
+
+	size_t ct = 0;
+	for( auto&[x, z]: dirs ) {
+		verts[ ct++ ] = static_cast<float>(x);
+		verts[ ct++ ] = 0.0;
+		verts[ ct++ ] = static_cast<float>(z);
+		verts[ ct++ ] = 0.0f;
+		verts[ ct++ ] = 1.0f;
+		verts[ ct++ ] = 0.0f;
+	}
+
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_floor_vao );
+	glBindVertexArray( m_floor_vao );
+
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_floor_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_floor_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz1*sizeof(float),
+		verts, GL_STATIC_DRAW );
+
+	glGenBuffers( 1, &m_sphere_ebo );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_sphere_ebo );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sz2 * sizeof(GLuint), indices, GL_STATIC_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+
+	GLint norAttrib = m_shader.getAttribLocation( "normal" );
+	glVertexAttribPointer(norAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(norAttrib);
 
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
@@ -546,7 +602,6 @@ void A1::draw()
 
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
-		glClearColor( floor_colour[0], floor_colour[1], floor_colour[2], 1.0 );
 		
 		rotation *= 0.9995;
 
@@ -566,6 +621,11 @@ void A1::draw()
 		glBindVertexArray( m_grid_vao );
 		glUniform3f( col_uni, 1, 1, 1 );
 		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+
+		// Draw the floor
+		glBindVertexArray( m_floor_vao );
+		glUniform3f( col_uni, floor_colour[0], floor_colour[1], floor_colour[2] );
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		// Draw the sphere
 		glBindVertexArray( m_sphere_vao );
@@ -782,15 +842,15 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 void A1::reset() {
 	numBlocks = 0;
 	m->reset();
-	floor_colour[0] = 0.3f;
-	floor_colour[1] = 0.5f;
-	floor_colour[2] = 0.7f;
+	floor_colour[0] = 0.23f;
+	floor_colour[1] = 0.38f;
+	floor_colour[2] = 0.53f;
 	sphere_colour[0] = 1.0f;
 	sphere_colour[1] = 1.0f;
 	sphere_colour[2] = 1.0f;
-	maze_colour[0] = 0.0f;
-	maze_colour[1] = 0.0f;
-	maze_colour[2] = 0.0f;
+	maze_colour[0] = 0.75f;
+	maze_colour[1] = 0.75f;
+	maze_colour[2] = 0.75f;
 	sphere_positionf[0] = 0.5f;
 	sphere_positionf[1] = 0.5f;
 	sphere_positionf[2] = 0.5f;

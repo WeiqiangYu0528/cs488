@@ -31,6 +31,7 @@ protected:
 
 private:
 	void initGrid();
+	void initFloor();
 	void initMaze();
 	void initSphere();
 	void initLight();
@@ -56,6 +57,11 @@ private:
 	// Fields related to grid geometry.
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
+
+	// Fields related to floor geometry.
+	GLuint m_floor_vao; // Vertex Array Object
+	GLuint m_floor_vbo; // Vertex Buffer Object
+	GLuint m_floor_ebo; // Element Buffer Object
 
 	// Fields related to maze geometry.
 	GLuint m_maze_vao; // Vertex Array Object
