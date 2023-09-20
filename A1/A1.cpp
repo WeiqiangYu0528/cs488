@@ -437,11 +437,6 @@ void A1::initLight() {
  */
 void A1::appLogic()
 {
-	if (releaseX != -2.0f) {
-		rotation = (lastX - releaseX) * 0.01;
-		releaseX = -2.0f;
-	}
-
 	if (left_times > 0) {
 		left_times--;
 		sphere_positionf[0] -= 0.025f;
@@ -645,9 +640,7 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		// rotation amount, and maybe the previous X position (so 
 		// that you can rotate relative to the *change* in X.
 		if (ImGui::IsMouseDragging()) {
-			rotation = 0.0f;
-			float xOffset = xPos - lastX;
-			view = glm::rotate(view, glm::radians(xOffset), glm::vec3(0.0f, 1.0f, 0.0f));
+			rotation = xPos - lastX;
 		}
 		lastX = xPos;
 	}
