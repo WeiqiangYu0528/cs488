@@ -40,10 +40,11 @@ To elevate the visual appeal of our project, I've introduced a simple Phong ligh
     - **Specular Lighting**: Mimics the shiny highlights on objects.
 
 When you run the program, you'll notice a small white cube positioned at (0, 10, 0) – that's our light source, contributing to the dynamic visual experience. You can find all the lighting details in the vertex and fragment shader files.
+
 ![Alt text](screenshot.png) 
 ### 2. Smooth Animation
 
-To enhance user immersion, I've incorporated a basic animation logic. Instead of abrupt position changes, the avatar's movement is divided into smaller frames, resulting in a smooth, lifelike animation. For example, when you press the "down" key multiple times, the avatar gracefully will descend to the target position.
+To enhance user immersion, I've incorporated a basic animation logic. Instead of abrupt position changes, the avatar's movement is divided into smaller frames, resulting in a smooth, lifelike animation. For example, when you press the "down" key multiple times, the avatar will gracefully descend to the target position.
 
 Please be aware that the animation speed may differ depending on your operating system. It might appear too slow on some systems or too fast on others. To fine-tune the animation speed to your liking, navigate to line 34 in the `A1.cpp` file. There, you can adjust the `animation_speed` value to achieve a natural movement pace for your specific environment. The default value is optimized for the lab's machine:
 
