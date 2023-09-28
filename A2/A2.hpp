@@ -27,6 +27,30 @@ public:
 	GLsizei numVertices;
 };
 
+class Cube {
+public:
+	Cube();
+	void initCube();
+
+	std::vector<std::pair<glm::vec4, glm::vec4>> lines;
+};
+
+enum class MouseButton {
+	None,
+	LEFT,
+	MIDDLE,
+	RIGHT
+};
+
+enum class Mode {
+	RotateView,
+	TranslateView,
+	Perspective,
+	RotateModel,
+	TranslateModel,
+	ScaleModel,
+	Viewport
+};
 
 class A2 : public CS488Window {
 public:
@@ -62,13 +86,36 @@ protected:
 			const glm::vec2 & v1
 	);
 
+	void reset();
+	void drawCube(Cube& cube);
+	glm::vec2 projection(glm::vec4& position);
+	void translate(glm::vec4& position, bool view);
+	void scale(glm::vec4& position);
+	void rotate(glm::vec4& position, bool view);
+	void transform(glm::vec4& position);
+
+
 	ShaderProgram m_shader;
 
 	GLuint m_vao;            // Vertex Array Object
 	GLuint m_vbo_positions;  // Vertex Buffer Object
 	GLuint m_vbo_colours;    // Vertex Buffer Object
 
+
 	VertexData m_vertexData;
+
+	// 2-component vector of floats.
+	// Represents mouse position in GL coordinates.
+	// Coordinates span [-1,1] along x and y directions within window.
+	glm::vec2 m_mouse_GL_coordinate;
+	glm::vec2 m_prev_mouse_GL_coordinate;
+	// True if mouse button is currently down.
+	bool m_mouseButtonActive;
+	MouseButton m_mouseButton;
+
+	Mode m_mode;
+	int m_mode_index;
+
 
 	glm::vec3 m_currentLineColour;
 

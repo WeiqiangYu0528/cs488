@@ -13,6 +13,8 @@ using namespace std;
 #include <glm/gtx/io.hpp>
 using namespace glm;
 
+const float PI = 3.14159265f;
+
 //----------------------------------------------------------------------------------------
 // Constructor
 VertexData::VertexData()
@@ -27,7 +29,13 @@ VertexData::VertexData()
 //----------------------------------------------------------------------------------------
 // Constructor
 A2::A2()
-	: m_currentLineColour(vec3(0.0f))
+	: m_currentLineColour(vec3(0.0f)),
+	  m_mouseButton(MouseButton::None),
+	  m_mouseButtonActive(false),
+	  m_mouse_GL_coordinate(vec2(0.0)),
+	  m_prev_mouse_GL_coordinate(vec2(0.0)),
+	  m_mode(Mode::TranslateModel),
+	  m_mode_index(4)
 {
 
 }
@@ -191,20 +199,17 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
-	// Draw outer square:
-	setLineColour(vec3(1.0f, 0.7f, 0.8f));
-	drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
-	drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
-	drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
-	drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
+	Cube cube;
+
+	drawCube(cube);
 
 
 	// Draw inner square:
-	setLineColour(vec3(0.2f, 1.0f, 1.0f));
-	drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
-	drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
-	drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
-	drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
+	// drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
+	// drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
+	// drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
+	// drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
 }
 
 //----------------------------------------------------------------------------------------
@@ -228,11 +233,22 @@ void A2::guiLogic()
 
 
 		// Add more gui elements here here ...
+		ImGui::RadioButton( "Rotate View (o)", &m_mode_index, 0);
+		ImGui::RadioButton( "Translate View (e)",  &m_mode_index, 1);
+		ImGui::RadioButton( "Perspective (p)",  &m_mode_index, 2);
+		ImGui::RadioButton( "Rotate Model (r)",  &m_mode_index, 3);
+		ImGui::RadioButton( "Translate Model (t)", &m_mode_index, 4);
+		ImGui::RadioButton( "Scale Model (s)",  &m_mode_index, 5);
+		ImGui::RadioButton( "Viewport (v)",  &m_mode_index, 6);
 
+		m_mode = static_cast<Mode>(m_mode_index);
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		if( ImGui::Button( "Reset Application" ) ) {
+			reset();
 		}
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
@@ -318,6 +334,14 @@ bool A2::mouseMoveEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	m_mouse_GL_coordinate = vec2 (
+			(2.0f * xPos) / m_windowWidth - 1.0f,
+			1.0f - ( (2.0f * yPos) / m_windowHeight)
+	);
+
+	if (m_mouseButtonActive) {
+		// m_shape_translation = m_mouse_GL_coordinate;
+	}
 
 	return eventHandled;
 }
@@ -334,6 +358,26 @@ bool A2::mouseButtonInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (actions == GLFW_PRESS) {
+		if (!ImGui::IsMouseHoveringAnyWindow()) {
+			m_mouseButtonActive = true;
+			m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
+			// m_shape_translation = m_mouse_GL_coordinate;
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				m_mouseButton = MouseButton::LEFT;
+			}
+			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_mouseButton = MouseButton::MIDDLE;
+			} else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_mouseButton = MouseButton::RIGHT;
+			}
+		}
+	}
+
+	if (actions == GLFW_RELEASE) {
+		m_mouseButtonActive = false;
+		m_mouseButton = MouseButton::None;
+	}
 
 	return eventHandled;
 }
@@ -380,6 +424,161 @@ bool A2::keyInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
-
+	if( action == GLFW_PRESS ) {
+		// Respond to some key events.
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		if (key == GLFW_KEY_A) {
+			reset();
+		}
+	}
 	return eventHandled;
+}
+
+void A2::reset () {
+	// Fill in with event handling code...
+}
+
+void A2::drawCube(Cube& cube) {
+	setLineColour(vec3(1.0f, 1.0f, 1.0f));
+	for (auto& line: cube.lines){
+		glm::vec4& v0 = line.first;
+		glm::vec4& v1 = line.second;
+
+		transform(v0);
+		transform(v1);
+
+		drawLine(projection(v0), projection(v1));
+	}
+}
+
+void A2::transform(glm::vec4& position) {
+	switch (m_mode) {
+		case Mode::TranslateModel:
+			translate(position, false);
+			break;
+		case Mode::ScaleModel:
+			scale(position);
+			break;
+		case Mode::RotateModel:
+			rotate(position, false);
+			break;
+		case Mode::TranslateView:
+			translate(position, true);
+			break;
+		case Mode::RotateView:
+			rotate(position, true);
+			break;
+		default:
+			break;
+	}
+}
+
+glm::vec2 A2::projection(glm::vec4& position) {
+
+	// Fill in with event handling code...
+	//orthographic projection
+	glm::mat4x3 orthographicMatrix = glm::mat4x3(
+        1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f
+    );
+	return glm::vec2(orthographicMatrix * position);
+}
+
+void A2::translate(glm::vec4& position, bool view) {
+	glm::mat4 transM = glm::mat4(1.0f);
+	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
+	if (m_mouseButton == MouseButton::LEFT) {
+		// Fill in with event handling code...
+		
+    	transM[3] = glm::vec4(offset, 0.0f, 0.0f, 1.0f);
+	}
+	else if (m_mouseButton == MouseButton::MIDDLE) {
+		transM[3] = glm::vec4(0.0f, offset, 0.0f, 1.0f);
+	}
+	else if (m_mouseButton == MouseButton::RIGHT) {
+		transM[3] = glm::vec4(0.0f, 0.0f, offset, 1.0f);
+	}
+	if (view) {
+		transM = glm::inverse(transM);
+	}
+	position = transM * position;
+}
+
+void A2::scale(glm::vec4& position) {
+	glm::mat4 scaleM = glm::mat4(1.0f);
+	float offset = std::max(0.0f, 1.0f + m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x);
+	if (m_mouseButton == MouseButton::LEFT) {
+		// Fill in with event handling code...
+		
+    	scaleM[0][0] = offset;
+	}
+	else if (m_mouseButton == MouseButton::MIDDLE) {
+		scaleM[1][1] = offset;
+	}
+	else if (m_mouseButton == MouseButton::RIGHT) {
+		scaleM[2][2] = offset;
+	}
+	position = scaleM * position;
+}
+
+void A2::rotate(glm::vec4& position, bool view) {
+	glm::mat4 rotateM = glm::mat4(1.0f);
+	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
+	float cosine = std::cos(offset);
+	float sine = std::sin(offset);
+	if (m_mouseButton == MouseButton::LEFT) {
+		// Fill in with event handling code...
+    	rotateM[1][1] = cosine;
+		rotateM[1][2] = sine;
+		rotateM[2][1] = -sine;
+		rotateM[2][2] = cosine;
+	}
+	else if (m_mouseButton == MouseButton::MIDDLE) {
+		rotateM[0][0] = cosine;
+		rotateM[0][2] = -sine;
+		rotateM[2][0] = sine;
+		rotateM[2][2] = cosine;
+	}
+	else if (m_mouseButton == MouseButton::RIGHT) {
+		rotateM[0][0] = cosine;
+		rotateM[0][1] = sine;
+		rotateM[1][0] = -sine;
+		rotateM[1][1] = cosine;
+	}
+	if (view) {
+		rotateM = glm::inverse(rotateM);
+	}
+	position = rotateM * position;
+}
+
+// void A2::viewRotate() {
+// 	glm::mat4 rotateM = glm::mat4(1.0f);
+// }
+
+// void A2::viewTranslate() {
+// 	glm::mat4 rotateM = glm::mat4(1.0f);
+
+// }
+
+
+Cube::Cube() {
+	initCube();
+}
+
+void Cube::initCube() {
+	lines = {
+		{vec4(-0.5f, -0.5f, -0.5f, 1.0f), vec4(0.5f, -0.5f, -0.5f, 1.0f)},
+		{vec4(-0.5f, 0.5f, -0.5f, 1.0f), vec4(0.5f, 0.5f, -0.5f, 1.0f)},
+		{vec4(-0.5f, -0.5f, 0.5f, 1.0f), vec4(0.5f, -0.5f, 0.5f, 1.0f)},
+		{vec4(-0.5f, 0.5f, 0.5f, 1.0f), vec4(0.5f, 0.5f, 0.5f, 1.0f)},
+		{vec4(-0.5f, -0.5f, -0.5f, 1.0f), vec4(-0.5f, -0.5f, 0.5f, 1.0f)},
+		{vec4(-0.5f, 0.5f, -0.5f, 1.0f), vec4(-0.5f, 0.5f, 0.5f, 1.0f)},
+		{vec4(0.5f, -0.5f, -0.5f, 1.0f), vec4(0.5f, -0.5f, 0.5f, 1.0f)},
+		{vec4(0.5f, 0.5f, -0.5f, 1.0f), vec4(0.5f, 0.5f, 0.5f, 1.0f)}
+	};
+
 }
