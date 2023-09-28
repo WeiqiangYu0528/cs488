@@ -32,7 +32,18 @@ public:
 	Cube();
 	void initCube();
 
-	std::vector<std::pair<glm::vec4, glm::vec4>> lines;
+	std::vector<glm::vec4> vertices;
+	std::vector<std::pair<glm::vec4, glm::vec4>> edges;
+};
+
+class Gnomon {
+public:
+	Gnomon(bool model);
+	void initGnomon();
+
+	bool model;
+	std::vector<glm::vec3> colours;
+	std::vector<std::pair<glm::vec4, glm::vec4>> edges;
 };
 
 enum class MouseButton {
@@ -88,12 +99,15 @@ protected:
 
 	void reset();
 	void drawCube(Cube& cube);
+	void drawGnomon(Gnomon& gnomon);
 	glm::vec2 projection(glm::vec4& position);
-	void translate(glm::vec4& position, bool view);
-	void scale(glm::vec4& position);
-	void rotate(glm::vec4& position, bool view);
-	void transform(glm::vec4& position);
+	void translate();
+	void scale();
+	void rotate();
+	void transform();
 
+	bool clipLine(glm::vec4& v1, glm::vec4& v2, glm::vec4& p, glm::vec4& norm);
+	bool clipNearPlane(glm::vec4& v1, glm::vec4& v2);
 
 	ShaderProgram m_shader;
 
@@ -116,6 +130,8 @@ protected:
 	Mode m_mode;
 	int m_mode_index;
 
+	glm::mat4 m_modelM;
+	glm::mat4 m_viewM;
 
 	glm::vec3 m_currentLineColour;
 

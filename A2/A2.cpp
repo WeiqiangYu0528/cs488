@@ -35,7 +35,9 @@ A2::A2()
 	  m_mouse_GL_coordinate(vec2(0.0)),
 	  m_prev_mouse_GL_coordinate(vec2(0.0)),
 	  m_mode(Mode::TranslateModel),
-	  m_mode_index(4)
+	  m_mode_index(4),
+	  m_modelM(mat4(1.0f)),
+	  m_viewM(mat4(1.0f))
 {
 
 }
@@ -200,16 +202,11 @@ void A2::appLogic()
 	initLineData();
 
 	Cube cube;
+	Gnomon modelGnomon(true);
 
 	drawCube(cube);
-
-
-	// Draw inner square:
-	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
-	// drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
-	// drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
-	// drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
-	// drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+	// drawGnomon(modelGnomon);
+	// drawGnomon(gnomon)
 }
 
 //----------------------------------------------------------------------------------------
@@ -341,6 +338,7 @@ bool A2::mouseMoveEvent (
 
 	if (m_mouseButtonActive) {
 		// m_shape_translation = m_mouse_GL_coordinate;
+		transform();
 	}
 
 	return eventHandled;
@@ -437,39 +435,60 @@ bool A2::keyInputEvent (
 }
 
 void A2::reset () {
+	m_modelM = mat4(1.0f);
+	m_viewM = mat4(1.0f);
 	// Fill in with event handling code...
 }
 
 void A2::drawCube(Cube& cube) {
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
-	for (auto& line: cube.lines){
-		glm::vec4& v0 = line.first;
-		glm::vec4& v1 = line.second;
+	for (auto& edge: cube.edges){
+		glm::vec4& v0 = edge.first;
+		glm::vec4& v1 = edge.second;
 
-		transform(v0);
-		transform(v1);
+		v0 = m_modelM * v0;
+		v1 = m_modelM * v1;
 
-		drawLine(projection(v0), projection(v1));
+		if (clipNearPlane(v0, v1)) {
+			setLineColour(vec3(1.0f, 1.0f, 1.0f));
+			drawLine(projection(v0), projection(v1));
+		}
 	}
 }
 
-void A2::transform(glm::vec4& position) {
+void A2::drawGnomon(Gnomon& gnomon) {
+	for (size_t i = 0; i < gnomon.edges.size(); ++i) {
+		auto& edge = gnomon.edges[i];
+		glm::vec4& v0 = edge.first;
+		glm::vec4& v1 = edge.second;
+		if (m_mode != Mode::ScaleModel) {
+			// transform(v0);
+			// transform(v1);
+		}
+		if (clipNearPlane(v0, v1)) {
+			setLineColour(gnomon.colours[i]);
+			drawLine(projection(v0), projection(v1));
+		}
+	}
+}
+
+void A2::transform() {
 	switch (m_mode) {
 		case Mode::TranslateModel:
-			translate(position, false);
+			translate();
 			break;
 		case Mode::ScaleModel:
-			scale(position);
+			scale();
 			break;
 		case Mode::RotateModel:
-			rotate(position, false);
+			rotate();
 			break;
-		case Mode::TranslateView:
-			translate(position, true);
-			break;
-		case Mode::RotateView:
-			rotate(position, true);
-			break;
+		// case Mode::TranslateView:
+		// 	translate(position, true);
+		// 	break;
+		// case Mode::RotateView:
+		// 	rotate(position, true);
+		// 	break;
 		default:
 			break;
 	}
@@ -478,22 +497,13 @@ void A2::transform(glm::vec4& position) {
 glm::vec2 A2::projection(glm::vec4& position) {
 
 	// Fill in with event handling code...
-	//orthographic projection
-	glm::mat4x3 orthographicMatrix = glm::mat4x3(
-        1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f
-    );
-	return glm::vec2(orthographicMatrix * position);
+	return glm::vec2(position.x / position.z, position.y / position.z);
 }
 
-void A2::translate(glm::vec4& position, bool view) {
-	glm::mat4 transM = glm::mat4(1.0f);
-	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
-	if (m_mouseButton == MouseButton::LEFT) {
-		// Fill in with event handling code...
-		
+void A2::translate() {
+	glm::mat4 transM(1.0f);
+	float offset = (m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x) * 0.05;
+	if (m_mouseButton == MouseButton::LEFT) {		
     	transM[3] = glm::vec4(offset, 0.0f, 0.0f, 1.0f);
 	}
 	else if (m_mouseButton == MouseButton::MIDDLE) {
@@ -502,18 +512,16 @@ void A2::translate(glm::vec4& position, bool view) {
 	else if (m_mouseButton == MouseButton::RIGHT) {
 		transM[3] = glm::vec4(0.0f, 0.0f, offset, 1.0f);
 	}
-	if (view) {
-		transM = glm::inverse(transM);
-	}
-	position = transM * position;
+	// if (view) {
+	// 	transM = glm::inverse(transM);
+	// }
+	m_modelM = m_modelM * transM;
 }
 
-void A2::scale(glm::vec4& position) {
-	glm::mat4 scaleM = glm::mat4(1.0f);
+void A2::scale() {
+	glm::mat4 scaleM(1.0f);
 	float offset = std::max(0.0f, 1.0f + m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x);
 	if (m_mouseButton == MouseButton::LEFT) {
-		// Fill in with event handling code...
-		
     	scaleM[0][0] = offset;
 	}
 	else if (m_mouseButton == MouseButton::MIDDLE) {
@@ -522,11 +530,13 @@ void A2::scale(glm::vec4& position) {
 	else if (m_mouseButton == MouseButton::RIGHT) {
 		scaleM[2][2] = offset;
 	}
-	position = scaleM * position;
+	// modelM = modelM * scaleM;
+	// position = modelM * position;
+	m_modelM = m_modelM * scaleM;
 }
 
-void A2::rotate(glm::vec4& position, bool view) {
-	glm::mat4 rotateM = glm::mat4(1.0f);
+void A2::rotate() {
+	glm::mat4 rotateM(1.0f);
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	float cosine = std::cos(offset);
 	float sine = std::sin(offset);
@@ -549,36 +559,88 @@ void A2::rotate(glm::vec4& position, bool view) {
 		rotateM[1][0] = -sine;
 		rotateM[1][1] = cosine;
 	}
-	if (view) {
-		rotateM = glm::inverse(rotateM);
-	}
-	position = rotateM * position;
+	// if (view) {
+	// 	rotateM = glm::inverse(rotateM);
+	// }
+	// modelM = modelM * rotateM;
+	// position = modelM * position;
+	m_modelM = m_modelM * rotateM;
 }
 
-// void A2::viewRotate() {
-// 	glm::mat4 rotateM = glm::mat4(1.0f);
-// }
+bool A2::clipLine(glm::vec4& v1, glm::vec4& v2, glm::vec4& p, glm::vec4& norm) {
+	int wecA = glm::dot((v1 - p), norm);
+	int wecB = glm::dot((v2 - p), norm);
+	if (wecA < 0 && wecB < 0) {
+		return false;
+	}
+	if ( wecA >= 0 && wecB >= 0 ) {
+		return true;
+	}
+	float t = wecA / (wecA - wecB);
+	if ( wecA < 0 ) {
+		v1 = v1 + t * (v2 - v1);
+	} else {
+		v2 = v1 + t * (v2 - v1);
+	}
+	return true;
+}
 
-// void A2::viewTranslate() {
-// 	glm::mat4 rotateM = glm::mat4(1.0f);
-
-// }
-
+// near plane: (-1, -1, 1) -> (1, 1, 1)
+bool A2::clipNearPlane(glm::vec4& v1, glm::vec4& v2) {
+	glm::vec4 norm(0, 0, 1, 1);
+	glm::vec4 p(0, 0, 1, 1);
+	return clipLine(v1, v2, p, norm);
+}
 
 Cube::Cube() {
 	initCube();
 }
 
 void Cube::initCube() {
-	lines = {
-		{vec4(-0.5f, -0.5f, -0.5f, 1.0f), vec4(0.5f, -0.5f, -0.5f, 1.0f)},
-		{vec4(-0.5f, 0.5f, -0.5f, 1.0f), vec4(0.5f, 0.5f, -0.5f, 1.0f)},
-		{vec4(-0.5f, -0.5f, 0.5f, 1.0f), vec4(0.5f, -0.5f, 0.5f, 1.0f)},
-		{vec4(-0.5f, 0.5f, 0.5f, 1.0f), vec4(0.5f, 0.5f, 0.5f, 1.0f)},
-		{vec4(-0.5f, -0.5f, -0.5f, 1.0f), vec4(-0.5f, -0.5f, 0.5f, 1.0f)},
-		{vec4(-0.5f, 0.5f, -0.5f, 1.0f), vec4(-0.5f, 0.5f, 0.5f, 1.0f)},
-		{vec4(0.5f, -0.5f, -0.5f, 1.0f), vec4(0.5f, -0.5f, 0.5f, 1.0f)},
-		{vec4(0.5f, 0.5f, -0.5f, 1.0f), vec4(0.5f, 0.5f, 0.5f, 1.0f)}
+	vertices = {
+		vec4(-0.5, -0.5, 1.5, 1),
+		vec4(-0.5, 0.5, 1.5, 1),
+		vec4(0.5, 0.5, 1.5, 1),
+		vec4(0.5, -0.5, 1.5, 1),
+		vec4(-0.5, -0.5, 2.5, 1),
+		vec4(-0.5, 0.5, 2.5, 1),
+		vec4(0.5, 0.5, 2.5, 1),
+		vec4(0.5, -0.5, 2.5, 1),
 	};
 
+	edges = {
+		{vertices[0], vertices[1]},
+		{vertices[1], vertices[2]},
+		{vertices[2], vertices[3]},
+		{vertices[3], vertices[0]},
+		{vertices[4], vertices[5]},
+		{vertices[5], vertices[6]},
+		{vertices[6], vertices[7]},
+		{vertices[7], vertices[4]},
+		{vertices[0], vertices[4]},
+		{vertices[1], vertices[5]},
+		{vertices[2], vertices[6]},
+		{vertices[3], vertices[7]},
+	};
 }
+
+
+Gnomon::Gnomon(bool model) : model(model)
+{
+	initGnomon();
+}
+
+void Gnomon::initGnomon() {
+	edges = {
+		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.125f, 0.0f, 2.0f, 1.0f)},
+		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.0f, 0.125f, 2.0f, 1.0f)},
+		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.0f, 0.0f, 2.125f, 1.0f)}
+	};
+	
+	colours = {
+		vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.0f, 0.0f, 1.0f) 
+	};
+}
+
