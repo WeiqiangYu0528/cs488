@@ -32,6 +32,7 @@ public:
 	Cube();
 	void initCube();
 
+	glm::mat4 modelM;
 	std::vector<glm::vec4> vertices;
 	std::vector<std::pair<glm::vec4, glm::vec4>> edges;
 };
@@ -42,6 +43,7 @@ public:
 	void initGnomon();
 
 	bool model;
+	glm::mat4 modelM;
 	std::vector<glm::vec3> colours;
 	std::vector<std::pair<glm::vec4, glm::vec4>> edges;
 };
@@ -50,7 +52,9 @@ class Camera {
 public:
 	Camera();
 	void initCamera();
+	void updateCamera(glm::mat4& viewM);
 
+	glm::vec3 up;
 	glm::vec3 cameraPos;
 	glm::vec3 cameraFront;
 	glm::vec3 cameraRight;
@@ -128,14 +132,16 @@ protected:
 	);
 
 	void reset();
-	void drawCube(Cube& cube);
-	void drawGnomon(Gnomon& gnomon);
+	void drawCube();
+	void drawGnomon();
 	glm::vec2 projection(glm::vec3& position);
-	void translate();
+	void translate(bool view);
 	void scale();
-	void rotate();
+	void rotate(bool view);
+	void perspective();
 	void transform();
-	Frustum createFrustum(float near, float far);
+	glm::vec4 getViewPosition(glm::vec4& position, glm::mat4& modelM);
+	Frustum createFrustum();
 
 	// bool clipNearPlane(glm::vec4& v1, glm::vec4& v2);
 
@@ -162,10 +168,14 @@ protected:
 	Mode m_mode;
 	int m_mode_index;
 	float fov = 30.0f;
+	float near = 1.0f;
+	float far = 10.0f;
 
-	glm::mat4 m_modelM;
 	glm::mat4 m_viewM;
 
 	glm::vec3 m_currentLineColour;
+
+	Cube m_cube;
+	Gnomon m_worldGnomon;
 
 };

@@ -36,11 +36,12 @@ A2::A2()
 	  m_prev_mouse_GL_coordinate(vec2(0.0)),
 	  m_mode(Mode::TranslateModel),
 	  m_mode_index(4),
-	  m_modelM(mat4(1.0f)),
 	  m_viewM(mat4(1.0f)),
-	  m_camera(Camera())
+	  m_camera(Camera()),
+	  m_cube(Cube()),
+	  m_worldGnomon(Gnomon(true))
 {
-	m_frustum = createFrustum(1.0f, 100.0f);
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -68,6 +69,8 @@ void A2::init()
 	generateVertexBuffers();
 
 	mapVboDataToVertexAttributeLocation();
+
+	m_frustum = createFrustum();
 }
 
 //----------------------------------------------------------------------------------------
@@ -202,11 +205,8 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
-	Cube cube;
-	Gnomon modelGnomon(true);
-
-	drawCube(cube);
-	// drawGnomon(modelGnomon);
+	drawCube();
+	drawGnomon();
 	// drawGnomon(gnomon)
 }
 
@@ -249,6 +249,7 @@ void A2::guiLogic()
 			reset();
 		}
 
+		ImGui::Text( "fov: %.1f, near: %.1f, far: %.1f", fov, near, far);
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
 	ImGui::End();
@@ -338,8 +339,8 @@ bool A2::mouseMoveEvent (
 	);
 
 	if (m_mouseButtonActive) {
-		// m_shape_translation = m_mouse_GL_coordinate;
 		transform();
+		m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
 	}
 
 	return eventHandled;
@@ -360,8 +361,6 @@ bool A2::mouseButtonInputEvent (
 	if (actions == GLFW_PRESS) {
 		if (!ImGui::IsMouseHoveringAnyWindow()) {
 			m_mouseButtonActive = true;
-			m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
-			// m_shape_translation = m_mouse_GL_coordinate;
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
 				m_mouseButton = MouseButton::LEFT;
 			}
@@ -435,57 +434,64 @@ bool A2::keyInputEvent (
 	return eventHandled;
 }
 
-void A2::reset () {
-	m_modelM = mat4(1.0f);
+void A2::reset() {
+	fov = 30.0f;
+	near = 1.0f;
+	far = 10.0f;
 	m_viewM = mat4(1.0f);
+	m_cube.initCube();
+	m_worldGnomon.initGnomon();
+	m_camera.initCamera();
+	m_frustum = createFrustum();
 	// Fill in with event handling code...
 }
 
-void A2::drawCube(Cube& cube) {
-	setLineColour(vec3(1.0f, 1.0f, 1.0f));
-	for (auto& edge: cube.edges){
-		glm::vec3 v0(m_modelM * edge.first);
-		glm::vec3 v1(m_modelM * edge.second);
+glm::vec4 A2::getViewPosition(glm::vec4& position, glm::mat4& modelM) {
+	return m_viewM * (modelM * position);
+}
 
+void A2::drawCube() {
+	setLineColour(vec3(1.0f, 1.0f, 1.0f));
+	for (auto& edge: m_cube.edges){
+		glm::vec3 v0(getViewPosition(edge.first, m_cube.modelM));
+		glm::vec3 v1(getViewPosition(edge.second, m_cube.modelM));
 		if (m_frustum.isInsideFrustum(v0, v1)) {
 			drawLine(projection(v0), projection(v1));
 		}
 	}
 }
 
-void A2::drawGnomon(Gnomon& gnomon) {
-	// for (size_t i = 0; i < gnomon.edges.size(); ++i) {
-	// 	auto& edge = gnomon.edges[i];
-	// 	glm::vec4& v0 = edge.first;
-	// 	glm::vec4& v1 = edge.second;
-	// 	if (m_mode != Mode::ScaleModel) {
-	// 		// transform(v0);
-	// 		// transform(v1);
-	// 	}
-	// 	if (clipNearPlane(v0, v1)) {
-	// 		setLineColour(gnomon.colours[i]);
-	// 		drawLine(projection(v0), projection(v1));
-	// 	}
-	// }
+void A2::drawGnomon() {
+	for (size_t i = 0; i < m_worldGnomon.edges.size(); ++i) {
+		auto& edge = m_worldGnomon.edges[i];
+		glm::vec3 v0(getViewPosition(edge.first, m_worldGnomon.modelM));
+		glm::vec3 v1(getViewPosition(edge.second, m_worldGnomon.modelM));
+		if (m_frustum.isInsideFrustum(v0, v1)) {
+			setLineColour(m_worldGnomon.colours[i]);
+			drawLine(projection(v0), projection(v1));
+		}
+	}
 }
 
 void A2::transform() {
 	switch (m_mode) {
 		case Mode::TranslateModel:
-			translate();
+			translate(false);
 			break;
 		case Mode::ScaleModel:
 			scale();
 			break;
 		case Mode::RotateModel:
-			rotate();
+			rotate(false);
 			break;
-		// case Mode::TranslateView:
-		// 	translate(position, true);
-		// 	break;
-		// case Mode::RotateView:
-		// 	rotate(position, true);
-		// 	break;
+		case Mode::TranslateView:
+			translate(true);
+			break;
+		case Mode::RotateView:
+			rotate(true);
+			break;
+		case Mode::Perspective:
+			perspective();
 		default:
 			break;
 	}
@@ -494,12 +500,12 @@ void A2::transform() {
 glm::vec2 A2::projection(glm::vec3& position) {
 
 	// Fill in with event handling code...
-	return glm::vec2(position.x / position.z, position.y / position.z);
+	return glm::vec2(position.x / std::abs(position.z), position.y / std::abs(position.z));
 }
 
-void A2::translate() {
+void A2::translate(bool view) {
 	glm::mat4 transM(1.0f);
-	float offset = (m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x) * 0.05;
+	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	if (m_mouseButton == MouseButton::LEFT) {		
     	transM[3] = glm::vec4(offset, 0.0f, 0.0f, 1.0f);
 	}
@@ -509,10 +515,15 @@ void A2::translate() {
 	else if (m_mouseButton == MouseButton::RIGHT) {
 		transM[3] = glm::vec4(0.0f, 0.0f, offset, 1.0f);
 	}
-	// if (view) {
-	// 	transM = glm::inverse(transM);
-	// }
-	m_modelM = transM * m_modelM;
+	if (view) {
+		transM = glm::inverse(transM);
+		m_viewM = transM * m_viewM;
+		m_camera.updateCamera(m_viewM);
+		m_frustum = createFrustum();
+	} else {
+		m_cube.modelM = m_cube.modelM * transM;
+		m_worldGnomon.modelM = m_worldGnomon.modelM * transM;
+	}
 }
 
 void A2::scale() {
@@ -527,16 +538,14 @@ void A2::scale() {
 	else if (m_mouseButton == MouseButton::RIGHT) {
 		scaleM[2][2] = offset;
 	}
-	// modelM = modelM * scaleM;
-	// position = modelM * position;
-	m_modelM = m_modelM * scaleM;
+	m_cube.modelM = m_cube.modelM * scaleM;
 }
 
-void A2::rotate() {
+void A2::rotate(bool view) {
 	glm::mat4 rotateM(1.0f);
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
-	float cosine = std::cos(offset);
-	float sine = std::sin(offset);
+	float cosine = cosf(offset);
+	float sine = sinf(offset);
 	if (m_mouseButton == MouseButton::LEFT) {
 		// Fill in with event handling code...
     	rotateM[1][1] = cosine;
@@ -556,30 +565,37 @@ void A2::rotate() {
 		rotateM[1][0] = -sine;
 		rotateM[1][1] = cosine;
 	}
-	// if (view) {
-	// 	rotateM = glm::inverse(rotateM);
-	// }
-	// modelM = modelM * rotateM;
-	// position = modelM * position;
-	m_modelM = m_modelM * rotateM;
+	if (view) {
+		rotateM = glm::inverse(rotateM);
+		m_viewM = rotateM * m_viewM;
+		m_camera.updateCamera(m_viewM);
+		m_frustum = createFrustum();
+	} else {
+		m_cube.modelM = m_cube.modelM * rotateM;
+		m_worldGnomon.modelM = m_worldGnomon.modelM * rotateM;
+	}
 }
 
-// // near plane: (-1, -1, 1) -> (1, 1, 1)
-// bool A2::clipNearPlane(glm::vec4& v1, glm::vec4& v2) {
-// 	glm::vec4 norm(0, 0, 1, 1);
-// 	glm::vec4 p(0, 0, 1, 1);
-// 	return clipLine(v1, v2, p, norm);
-// }
+void A2::perspective() {
+	float offset = (m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x) * 10;
+	if (m_mouseButton == MouseButton::LEFT) {
+		fov = glm::clamp(fov + offset, 5.0f, 160.0f);
+	}
+	else if (m_mouseButton == MouseButton::MIDDLE) {
+		near = glm::clamp(near + offset, 0.0f, far);
+	}
+	else if (m_mouseButton == MouseButton::RIGHT) {
+		far = glm::clamp(far + offset, near, 100.0f);
+	}
+	m_frustum = createFrustum();
+}
 
-Frustum A2::createFrustum(float near, float far)
+Frustum A2::createFrustum()
 {
     Frustum frustum;
-	m_framebufferWidth = 2048;
-	m_framebufferHeight = 1536;
-	float aspect = float( m_framebufferWidth ) / float( m_framebufferHeight );
-    float halfFarHeight = far * tanf(0.5 * fov);
+	float aspect = float( m_windowWidth) / float( m_windowHeight );
+    float halfFarHeight = far * tanf(0.5 * glm::radians(fov));
     float halfFarWidth = halfFarHeight * aspect;
-	std::cout << m_framebufferWidth << m_framebufferHeight <<  aspect << " " << halfFarWidth << " " << halfFarHeight << std::endl;
     glm::vec3 farCenter = far * m_camera.cameraFront;
 
     frustum.planes[0] = Plane(m_camera.cameraPos + near * m_camera.cameraFront, m_camera.cameraFront);
@@ -597,6 +613,7 @@ Cube::Cube() {
 }
 
 void Cube::initCube() {
+	modelM = mat4(1.0f);
 	vertices = {
 		vec4(-0.5, -0.5, -1.5, 1),
 		vec4(-0.5, 0.5, -1.5, 1),
@@ -631,10 +648,11 @@ Gnomon::Gnomon(bool model) : model(model)
 }
 
 void Gnomon::initGnomon() {
+	modelM = mat4(1.0f);
 	edges = {
-		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.125f, 0.0f, 2.0f, 1.0f)},
-		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.0f, 0.125f, 2.0f, 1.0f)},
-		{vec4(0.0f, 0.0f, 2.0f, 1.0f), vec4(0.0f, 0.0f, 2.125f, 1.0f)}
+		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.125f, 0.0f, -2.0f, 1.0f)},
+		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.125f, -2.0f, 1.0f)},
+		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.0f, -2.125f, 1.0f)}
 	};
 	
 	colours = {
@@ -644,14 +662,21 @@ void Gnomon::initGnomon() {
 	};
 }
 
-Camera::Camera() {
+Camera::Camera() : up(0.0f, 1.0f, 0.0f) {
 	initCamera();
 }
 
 void Camera::initCamera() {
-	glm::vec3 up(0.0f, 1.0f, 0.0f);
 	cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+	cameraRight = glm::normalize(glm::cross(cameraFront, up));
+	cameraUp = glm::normalize(glm::cross(cameraRight, cameraFront));
+}
+
+void Camera::updateCamera(glm::mat4& viewM) {
+	glm::mat4 inverseViewM = glm::inverse(viewM);
+	cameraPos = glm::vec3(inverseViewM[3]);
+	cameraFront = glm::normalize(-vec3(viewM[2]));
 	cameraRight = glm::normalize(glm::cross(cameraFront, up));
 	cameraUp = glm::normalize(glm::cross(cameraRight, cameraFront));
 }
