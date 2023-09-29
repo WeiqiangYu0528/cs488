@@ -46,6 +46,36 @@ public:
 	std::vector<std::pair<glm::vec4, glm::vec4>> edges;
 };
 
+class Camera {
+public:
+	Camera();
+	void initCamera();
+
+	glm::vec3 cameraPos;
+	glm::vec3 cameraFront;
+	glm::vec3 cameraRight;
+	glm::vec3 cameraUp;
+};
+
+class Plane {
+public:
+	Plane() = default;
+	Plane(glm::vec3 p, glm::vec3 norm);
+	bool clipLine(glm::vec3& p1, glm::vec3& p2);
+
+	glm::vec3 norm;
+	glm::vec3 point;
+};
+
+class Frustum {
+public:
+
+	Plane planes[6];
+
+	Frustum() = default;
+	bool isInsideFrustum(glm::vec3& p1, glm::vec3& p2);
+};
+
 enum class MouseButton {
 	None,
 	LEFT,
@@ -100,14 +130,14 @@ protected:
 	void reset();
 	void drawCube(Cube& cube);
 	void drawGnomon(Gnomon& gnomon);
-	glm::vec2 projection(glm::vec4& position);
+	glm::vec2 projection(glm::vec3& position);
 	void translate();
 	void scale();
 	void rotate();
 	void transform();
+	Frustum createFrustum(float near, float far);
 
-	bool clipLine(glm::vec4& v1, glm::vec4& v2, glm::vec4& p, glm::vec4& norm);
-	bool clipNearPlane(glm::vec4& v1, glm::vec4& v2);
+	// bool clipNearPlane(glm::vec4& v1, glm::vec4& v2);
 
 	ShaderProgram m_shader;
 
@@ -126,9 +156,12 @@ protected:
 	// True if mouse button is currently down.
 	bool m_mouseButtonActive;
 	MouseButton m_mouseButton;
+	Camera m_camera;
+	Frustum m_frustum;
 
 	Mode m_mode;
 	int m_mode_index;
+	float fov = 30.0f;
 
 	glm::mat4 m_modelM;
 	glm::mat4 m_viewM;

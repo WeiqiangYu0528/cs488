@@ -37,9 +37,10 @@ A2::A2()
 	  m_mode(Mode::TranslateModel),
 	  m_mode_index(4),
 	  m_modelM(mat4(1.0f)),
-	  m_viewM(mat4(1.0f))
+	  m_viewM(mat4(1.0f)),
+	  m_camera(Camera())
 {
-
+	m_frustum = createFrustum(1.0f, 100.0f);
 }
 
 //----------------------------------------------------------------------------------------
@@ -443,33 +444,29 @@ void A2::reset () {
 void A2::drawCube(Cube& cube) {
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
 	for (auto& edge: cube.edges){
-		glm::vec4& v0 = edge.first;
-		glm::vec4& v1 = edge.second;
+		glm::vec3 v0(m_modelM * edge.first);
+		glm::vec3 v1(m_modelM * edge.second);
 
-		v0 = m_modelM * v0;
-		v1 = m_modelM * v1;
-
-		if (clipNearPlane(v0, v1)) {
-			setLineColour(vec3(1.0f, 1.0f, 1.0f));
+		if (m_frustum.isInsideFrustum(v0, v1)) {
 			drawLine(projection(v0), projection(v1));
 		}
 	}
 }
 
 void A2::drawGnomon(Gnomon& gnomon) {
-	for (size_t i = 0; i < gnomon.edges.size(); ++i) {
-		auto& edge = gnomon.edges[i];
-		glm::vec4& v0 = edge.first;
-		glm::vec4& v1 = edge.second;
-		if (m_mode != Mode::ScaleModel) {
-			// transform(v0);
-			// transform(v1);
-		}
-		if (clipNearPlane(v0, v1)) {
-			setLineColour(gnomon.colours[i]);
-			drawLine(projection(v0), projection(v1));
-		}
-	}
+	// for (size_t i = 0; i < gnomon.edges.size(); ++i) {
+	// 	auto& edge = gnomon.edges[i];
+	// 	glm::vec4& v0 = edge.first;
+	// 	glm::vec4& v1 = edge.second;
+	// 	if (m_mode != Mode::ScaleModel) {
+	// 		// transform(v0);
+	// 		// transform(v1);
+	// 	}
+	// 	if (clipNearPlane(v0, v1)) {
+	// 		setLineColour(gnomon.colours[i]);
+	// 		drawLine(projection(v0), projection(v1));
+	// 	}
+	// }
 }
 
 void A2::transform() {
@@ -494,7 +491,7 @@ void A2::transform() {
 	}
 }
 
-glm::vec2 A2::projection(glm::vec4& position) {
+glm::vec2 A2::projection(glm::vec3& position) {
 
 	// Fill in with event handling code...
 	return glm::vec2(position.x / position.z, position.y / position.z);
@@ -515,7 +512,7 @@ void A2::translate() {
 	// if (view) {
 	// 	transM = glm::inverse(transM);
 	// }
-	m_modelM = m_modelM * transM;
+	m_modelM = transM * m_modelM;
 }
 
 void A2::scale() {
@@ -567,29 +564,32 @@ void A2::rotate() {
 	m_modelM = m_modelM * rotateM;
 }
 
-bool A2::clipLine(glm::vec4& v1, glm::vec4& v2, glm::vec4& p, glm::vec4& norm) {
-	int wecA = glm::dot((v1 - p), norm);
-	int wecB = glm::dot((v2 - p), norm);
-	if (wecA < 0 && wecB < 0) {
-		return false;
-	}
-	if ( wecA >= 0 && wecB >= 0 ) {
-		return true;
-	}
-	float t = wecA / (wecA - wecB);
-	if ( wecA < 0 ) {
-		v1 = v1 + t * (v2 - v1);
-	} else {
-		v2 = v1 + t * (v2 - v1);
-	}
-	return true;
-}
+// // near plane: (-1, -1, 1) -> (1, 1, 1)
+// bool A2::clipNearPlane(glm::vec4& v1, glm::vec4& v2) {
+// 	glm::vec4 norm(0, 0, 1, 1);
+// 	glm::vec4 p(0, 0, 1, 1);
+// 	return clipLine(v1, v2, p, norm);
+// }
 
-// near plane: (-1, -1, 1) -> (1, 1, 1)
-bool A2::clipNearPlane(glm::vec4& v1, glm::vec4& v2) {
-	glm::vec4 norm(0, 0, 1, 1);
-	glm::vec4 p(0, 0, 1, 1);
-	return clipLine(v1, v2, p, norm);
+Frustum A2::createFrustum(float near, float far)
+{
+    Frustum frustum;
+	m_framebufferWidth = 2048;
+	m_framebufferHeight = 1536;
+	float aspect = float( m_framebufferWidth ) / float( m_framebufferHeight );
+    float halfFarHeight = far * tanf(0.5 * fov);
+    float halfFarWidth = halfFarHeight * aspect;
+	std::cout << m_framebufferWidth << m_framebufferHeight <<  aspect << " " << halfFarWidth << " " << halfFarHeight << std::endl;
+    glm::vec3 farCenter = far * m_camera.cameraFront;
+
+    frustum.planes[0] = Plane(m_camera.cameraPos + near * m_camera.cameraFront, m_camera.cameraFront);
+    frustum.planes[1] = Plane(m_camera.cameraPos + farCenter, -m_camera.cameraFront);
+    frustum.planes[2] = Plane(m_camera.cameraPos, glm::cross(farCenter - m_camera.cameraRight * halfFarWidth, m_camera.cameraUp));
+    frustum.planes[3] = Plane(m_camera.cameraPos, glm::cross(m_camera.cameraUp, farCenter + m_camera.cameraRight * halfFarWidth));
+    frustum.planes[4] = Plane(m_camera.cameraPos, glm::cross(m_camera.cameraRight, farCenter - m_camera.cameraUp * halfFarHeight));
+    frustum.planes[5] = Plane(m_camera.cameraPos, glm::cross(farCenter + m_camera.cameraUp * halfFarHeight, m_camera.cameraRight));
+
+    return frustum;
 }
 
 Cube::Cube() {
@@ -598,14 +598,14 @@ Cube::Cube() {
 
 void Cube::initCube() {
 	vertices = {
-		vec4(-0.5, -0.5, 1.5, 1),
-		vec4(-0.5, 0.5, 1.5, 1),
-		vec4(0.5, 0.5, 1.5, 1),
-		vec4(0.5, -0.5, 1.5, 1),
-		vec4(-0.5, -0.5, 2.5, 1),
-		vec4(-0.5, 0.5, 2.5, 1),
-		vec4(0.5, 0.5, 2.5, 1),
-		vec4(0.5, -0.5, 2.5, 1),
+		vec4(-0.5, -0.5, -1.5, 1),
+		vec4(-0.5, 0.5, -1.5, 1),
+		vec4(0.5, 0.5, -1.5, 1),
+		vec4(0.5, -0.5, -1.5, 1),
+		vec4(-0.5, -0.5, -2.5, 1),
+		vec4(-0.5, 0.5, -2.5, 1),
+		vec4(0.5, 0.5, -2.5, 1),
+		vec4(0.5, -0.5, -2.5, 1),
 	};
 
 	edges = {
@@ -644,3 +644,50 @@ void Gnomon::initGnomon() {
 	};
 }
 
+Camera::Camera() {
+	initCamera();
+}
+
+void Camera::initCamera() {
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+	cameraRight = glm::normalize(glm::cross(cameraFront, up));
+	cameraUp = glm::normalize(glm::cross(cameraRight, cameraFront));
+}
+
+Plane::Plane(glm::vec3 p, glm::vec3 norm) : 
+	point(p), norm(glm::normalize(norm))
+{
+
+}
+
+bool Plane::clipLine(glm::vec3& p1, glm::vec3& p2) {
+	int wecA = glm::dot((p1 - point), norm);
+	int wecB = glm::dot((p2 - point), norm);
+	if (wecA < 0 && wecB < 0) {
+		return false;
+	}
+	if ( wecA >= 0 && wecB >= 0 ) {
+		return true;
+	}
+	float t = wecA / (wecA - wecB);
+	if ( wecA < 0 ) {
+		p1 = p1 + t * (p2 - p1);
+	} else {
+		p2 = p1 + t * (p2 - p1);
+	}
+	return true;
+}
+
+bool Frustum::isInsideFrustum(glm::vec3& p1, glm::vec3& p2) {
+	int i = 0;
+	for (Plane& plane: planes) {
+		if (!plane.clipLine(p1, p2)) {
+			// std::cout << i << std::endl;
+			return false;
+		}
+		++i;
+	}
+	return true;
+}
