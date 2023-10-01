@@ -39,7 +39,10 @@ A2::A2()
 	  m_viewM(mat4(1.0f)),
 	  m_camera(Camera()),
 	  m_cube(Cube()),
-	  m_worldGnomon(Gnomon(true))
+	  m_modelGnomon(Gnomon(true)),
+	  m_worldGnomon(Gnomon(false)),
+	  m_viewport_start_coordinate(-0.9f, 0.9f),
+	  m_viewport_end_coordinate(0.9f, -0.9f)
 {
 
 }
@@ -205,9 +208,10 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
+	drawViewport();
 	drawCube();
-	drawGnomon();
-	// drawGnomon(gnomon)
+	drawGnomon(m_modelGnomon);
+	drawGnomon(m_worldGnomon);
 }
 
 //----------------------------------------------------------------------------------------
@@ -333,6 +337,7 @@ bool A2::mouseMoveEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
 	m_mouse_GL_coordinate = vec2 (
 			(2.0f * xPos) / m_windowWidth - 1.0f,
 			1.0f - ( (2.0f * yPos) / m_windowHeight)
@@ -340,7 +345,9 @@ bool A2::mouseMoveEvent (
 
 	if (m_mouseButtonActive) {
 		transform();
-		m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
+		if (m_mode == Mode::Viewport) {
+			m_viewport_end_coordinate = m_mouse_GL_coordinate;
+		}
 	}
 
 	return eventHandled;
@@ -363,6 +370,10 @@ bool A2::mouseButtonInputEvent (
 			m_mouseButtonActive = true;
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
 				m_mouseButton = MouseButton::LEFT;
+				if (m_mode == Mode::Viewport) {
+					m_viewport_start_coordinate = m_mouse_GL_coordinate;
+					m_viewport_end_coordinate = m_mouse_GL_coordinate;
+				}
 			}
 			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
 				m_mouseButton = MouseButton::MIDDLE;
@@ -373,8 +384,13 @@ bool A2::mouseButtonInputEvent (
 	}
 
 	if (actions == GLFW_RELEASE) {
-		m_mouseButtonActive = false;
-		m_mouseButton = MouseButton::None;
+		if (!ImGui::IsMouseHoveringAnyWindow()) {
+			m_mouseButtonActive = false;
+			m_mouseButton = MouseButton::None;
+			if (m_mode == Mode::Viewport) {
+				m_viewport_end_coordinate = m_mouse_GL_coordinate;
+			}
+		}
 	}
 
 	return eventHandled;
@@ -430,6 +446,34 @@ bool A2::keyInputEvent (
 		if (key == GLFW_KEY_A) {
 			reset();
 		}
+		if (key == GLFW_KEY_O) {
+			m_mode = Mode::RotateView;
+			m_mode_index = 0;
+		}
+		if (key == GLFW_KEY_E) {
+			m_mode = Mode::TranslateView;
+			m_mode_index = 1;
+		}
+		if (key == GLFW_KEY_P) {
+			m_mode = Mode::Perspective;
+			m_mode_index = 2;
+		}
+		if (key == GLFW_KEY_R) {
+			m_mode = Mode::RotateModel;
+			m_mode_index = 3;
+		}
+		if (key == GLFW_KEY_T) {
+			m_mode = Mode::TranslateModel;
+			m_mode_index = 4;
+		}
+		if (key == GLFW_KEY_S) {
+			m_mode = Mode::ScaleModel;
+			m_mode_index = 5;
+		}
+		if (key == GLFW_KEY_V) {
+			m_mode = Mode::Viewport;
+			m_mode_index = 6;
+		}
 	}
 	return eventHandled;
 }
@@ -441,13 +485,30 @@ void A2::reset() {
 	m_viewM = mat4(1.0f);
 	m_cube.initCube();
 	m_worldGnomon.initGnomon();
+	m_modelGnomon.initGnomon();
 	m_camera.initCamera();
 	m_frustum = createFrustum();
+	m_viewport_start_coordinate = glm::vec2(-0.9f, 0.9f);
+	m_viewport_end_coordinate = glm::vec2(0.9f, -0.9f);
+	m_mouse_GL_coordinate = glm::vec2(0.0f);
+	m_prev_mouse_GL_coordinate = glm::vec2(0.0f);
 	// Fill in with event handling code...
 }
 
 glm::vec4 A2::getViewPosition(glm::vec4& position, glm::mat4& modelM) {
 	return m_viewM * (modelM * position);
+}
+
+void::A2::drawViewport() {
+	setLineColour(vec3(0.0f, 0.0f, 0.0f));
+	glm::vec2 upLeft(std::min(m_viewport_start_coordinate.x, m_viewport_end_coordinate.x), std::max(m_viewport_start_coordinate.y, m_viewport_end_coordinate.y));
+	glm::vec2 bottomRight(std::max(m_viewport_start_coordinate.x, m_viewport_end_coordinate.x), std::min(m_viewport_start_coordinate.y, m_viewport_end_coordinate.y));
+	glm::vec2 upRight(bottomRight.x, upLeft.y);
+	glm::vec2 bottomLeft(upLeft.x, bottomRight.y);
+	drawLine(upLeft, upRight);
+	drawLine(upLeft, bottomLeft);
+	drawLine(upRight, bottomRight);
+	drawLine(bottomLeft, bottomRight);
 }
 
 void A2::drawCube() {
@@ -456,19 +517,27 @@ void A2::drawCube() {
 		glm::vec3 v0(getViewPosition(edge.first, m_cube.modelM));
 		glm::vec3 v1(getViewPosition(edge.second, m_cube.modelM));
 		if (m_frustum.isInsideFrustum(v0, v1)) {
-			drawLine(projection(v0), projection(v1));
+			glm::vec2 projectedPoint1(projection(v0));
+			glm::vec2 projectedPoint2(projection(v1));
+			viewportTransform(projectedPoint1);
+			viewportTransform(projectedPoint2);
+			drawLine(projectedPoint1, projectedPoint2);
 		}
 	}
 }
 
-void A2::drawGnomon() {
-	for (size_t i = 0; i < m_worldGnomon.edges.size(); ++i) {
-		auto& edge = m_worldGnomon.edges[i];
-		glm::vec3 v0(getViewPosition(edge.first, m_worldGnomon.modelM));
-		glm::vec3 v1(getViewPosition(edge.second, m_worldGnomon.modelM));
+void A2::drawGnomon(Gnomon& gnomon) {
+	for (size_t i = 0; i < gnomon.edges.size(); ++i) {
+		auto& edge = gnomon.edges[i];
+		glm::vec3 v0(getViewPosition(edge.first, gnomon.modelM));
+		glm::vec3 v1(getViewPosition(edge.second, gnomon.modelM));
 		if (m_frustum.isInsideFrustum(v0, v1)) {
-			setLineColour(m_worldGnomon.colours[i]);
-			drawLine(projection(v0), projection(v1));
+			setLineColour(gnomon.colours[i]);
+			glm::vec2 projectedPoint1(projection(v0));
+			glm::vec2 projectedPoint2(projection(v1));
+			viewportTransform(projectedPoint1);
+			viewportTransform(projectedPoint2);
+			drawLine(projectedPoint1, projectedPoint2);
 		}
 	}
 }
@@ -497,6 +566,15 @@ void A2::transform() {
 	}
 }
 
+void A2::viewportTransform(glm::vec2& position) {
+	float viewportWidth = std::abs(m_viewport_end_coordinate.x - m_viewport_start_coordinate.x);
+	float viewportHeight = std::abs(m_viewport_end_coordinate.y - m_viewport_start_coordinate.y);
+	float viewportX = std::min(m_viewport_start_coordinate.x, m_viewport_end_coordinate.x);
+	float viewportY = std::min(m_viewport_start_coordinate.y, m_viewport_end_coordinate.y);
+	position.x =  (viewportWidth / 2.0f) * (position.x + 1.0f) + viewportX;
+	position.y =  (viewportHeight / 2.0f) * (position.y + 1.0f) + viewportY;
+}
+
 glm::vec2 A2::projection(glm::vec3& position) {
 
 	// Fill in with event handling code...
@@ -522,7 +600,7 @@ void A2::translate(bool view) {
 		m_frustum = createFrustum();
 	} else {
 		m_cube.modelM = m_cube.modelM * transM;
-		m_worldGnomon.modelM = m_worldGnomon.modelM * transM;
+		m_modelGnomon.modelM = m_modelGnomon.modelM * transM;
 	}
 }
 
@@ -572,20 +650,23 @@ void A2::rotate(bool view) {
 		m_frustum = createFrustum();
 	} else {
 		m_cube.modelM = m_cube.modelM * rotateM;
-		m_worldGnomon.modelM = m_worldGnomon.modelM * rotateM;
+		m_modelGnomon.modelM = m_modelGnomon.modelM * rotateM;
 	}
 }
 
 void A2::perspective() {
-	float offset = (m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x) * 10;
+	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	if (m_mouseButton == MouseButton::LEFT) {
-		fov = glm::clamp(fov + offset, 5.0f, 160.0f);
+		fov = glm::clamp(fov + offset * 50, 5.0f, 160.0f);
+		glm::mat4 scaleM(1.0f);
+		scaleM[2][2] = glm::clamp(1 + offset, 0.1f, 5.0f);
+		m_cube.modelM = m_cube.modelM * scaleM;
 	}
 	else if (m_mouseButton == MouseButton::MIDDLE) {
-		near = glm::clamp(near + offset, 0.0f, far);
+		near = glm::clamp(near + offset * 10, 0.0f, far);
 	}
 	else if (m_mouseButton == MouseButton::RIGHT) {
-		far = glm::clamp(far + offset, near, 100.0f);
+		far = glm::clamp(far + offset * 10, near, 100.0f);
 	}
 	m_frustum = createFrustum();
 }
@@ -641,9 +722,7 @@ void Cube::initCube() {
 	};
 }
 
-
-Gnomon::Gnomon(bool model) : model(model)
-{
+Gnomon::Gnomon(bool model) : model(model) {
 	initGnomon();
 }
 
@@ -655,11 +734,11 @@ void Gnomon::initGnomon() {
 		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.0f, -2.125f, 1.0f)}
 	};
 	
-	colours = {
-		vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.0f, 0.0f, 1.0f) 
-	};
+	if (model) {
+		colours = {vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)};
+	} else {
+		colours = {vec3(0.2f, 0.6f, 1.0f), vec3(1.0f, 0.4f, 0.4f), vec3(1.0f, 0.8f, 0.0f)};
+	}
 }
 
 Camera::Camera() : up(0.0f, 1.0f, 0.0f) {
@@ -706,13 +785,10 @@ bool Plane::clipLine(glm::vec3& p1, glm::vec3& p2) {
 }
 
 bool Frustum::isInsideFrustum(glm::vec3& p1, glm::vec3& p2) {
-	int i = 0;
 	for (Plane& plane: planes) {
 		if (!plane.clipLine(p1, p2)) {
-			// std::cout << i << std::endl;
 			return false;
 		}
-		++i;
 	}
 	return true;
 }

@@ -132,14 +132,16 @@ protected:
 	);
 
 	void reset();
+	void drawViewport();
 	void drawCube();
-	void drawGnomon();
+	void drawGnomon(Gnomon& gnomon);
 	glm::vec2 projection(glm::vec3& position);
 	void translate(bool view);
 	void scale();
 	void rotate(bool view);
 	void perspective();
 	void transform();
+	void viewportTransform(glm::vec2& position);
 	glm::vec4 getViewPosition(glm::vec4& position, glm::mat4& modelM);
 	Frustum createFrustum();
 
@@ -159,6 +161,8 @@ protected:
 	// Coordinates span [-1,1] along x and y directions within window.
 	glm::vec2 m_mouse_GL_coordinate;
 	glm::vec2 m_prev_mouse_GL_coordinate;
+	glm::vec2 m_viewport_start_coordinate;
+	glm::vec2 m_viewport_end_coordinate;
 	// True if mouse button is currently down.
 	bool m_mouseButtonActive;
 	MouseButton m_mouseButton;
@@ -176,6 +180,6 @@ protected:
 	glm::vec3 m_currentLineColour;
 
 	Cube m_cube;
+	Gnomon m_modelGnomon;
 	Gnomon m_worldGnomon;
-
 };
