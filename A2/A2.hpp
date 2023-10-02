@@ -165,13 +165,14 @@ protected:
 	glm::vec2 m_viewport_end_coordinate;
 	// True if mouse button is currently down.
 	bool m_mouseButtonActive;
+	bool m_leftMouseButtonActive;
 	MouseButton m_mouseButton;
 	Camera m_camera;
 	Frustum m_frustum;
 
 	Mode m_mode;
 	int m_mode_index;
-	float fov = 30.0f;
+	float fov = 60.0f;
 	float near = 1.0f;
 	float far = 10.0f;
 

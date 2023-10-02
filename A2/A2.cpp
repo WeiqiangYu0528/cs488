@@ -32,10 +32,11 @@ A2::A2()
 	: m_currentLineColour(vec3(0.0f)),
 	  m_mouseButton(MouseButton::None),
 	  m_mouseButtonActive(false),
+	  m_leftMouseButtonActive(false),
 	  m_mouse_GL_coordinate(vec2(0.0)),
 	  m_prev_mouse_GL_coordinate(vec2(0.0)),
-	  m_mode(Mode::TranslateModel),
-	  m_mode_index(4),
+	  m_mode(Mode::RotateModel),
+	  m_mode_index(3),
 	  m_viewM(mat4(1.0f)),
 	  m_camera(Camera()),
 	  m_cube(Cube()),
@@ -345,8 +346,9 @@ bool A2::mouseMoveEvent (
 
 	if (m_mouseButtonActive) {
 		transform();
-		if (m_mode == Mode::Viewport) {
-			m_viewport_end_coordinate = m_mouse_GL_coordinate;
+		if (m_leftMouseButtonActive) {
+			m_viewport_end_coordinate.x = glm::clamp(m_mouse_GL_coordinate.x, -0.995f, 0.995f);
+			m_viewport_end_coordinate.y = glm::clamp(m_mouse_GL_coordinate.y, -0.995f, 0.995f);
 		}
 	}
 
@@ -371,6 +373,7 @@ bool A2::mouseButtonInputEvent (
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
 				m_mouseButton = MouseButton::LEFT;
 				if (m_mode == Mode::Viewport) {
+					m_leftMouseButtonActive = true;
 					m_viewport_start_coordinate = m_mouse_GL_coordinate;
 					m_viewport_end_coordinate = m_mouse_GL_coordinate;
 				}
@@ -387,8 +390,8 @@ bool A2::mouseButtonInputEvent (
 		if (!ImGui::IsMouseHoveringAnyWindow()) {
 			m_mouseButtonActive = false;
 			m_mouseButton = MouseButton::None;
-			if (m_mode == Mode::Viewport) {
-				m_viewport_end_coordinate = m_mouse_GL_coordinate;
+			if (m_leftMouseButtonActive) {
+				m_leftMouseButtonActive = false;
 			}
 		}
 	}
@@ -479,7 +482,7 @@ bool A2::keyInputEvent (
 }
 
 void A2::reset() {
-	fov = 30.0f;
+	fov = 75.0f;
 	near = 1.0f;
 	far = 10.0f;
 	m_viewM = mat4(1.0f);
@@ -488,11 +491,15 @@ void A2::reset() {
 	m_modelGnomon.initGnomon();
 	m_camera.initCamera();
 	m_frustum = createFrustum();
+	m_mode = Mode::RotateModel;
+	m_mode_index = 3;
 	m_viewport_start_coordinate = glm::vec2(-0.9f, 0.9f);
 	m_viewport_end_coordinate = glm::vec2(0.9f, -0.9f);
 	m_mouse_GL_coordinate = glm::vec2(0.0f);
 	m_prev_mouse_GL_coordinate = glm::vec2(0.0f);
-	// Fill in with event handling code...
+	m_mouseButtonActive = false;
+	m_leftMouseButtonActive = false;
+	m_mouseButton = MouseButton::None;
 }
 
 glm::vec4 A2::getViewPosition(glm::vec4& position, glm::mat4& modelM) {
@@ -597,7 +604,7 @@ void A2::translate(bool view) {
 		transM = glm::inverse(transM);
 		m_viewM = transM * m_viewM;
 		m_camera.updateCamera(m_viewM);
-		m_frustum = createFrustum();
+		// m_frustum = createFrustum();
 	} else {
 		m_cube.modelM = m_cube.modelM * transM;
 		m_modelGnomon.modelM = m_modelGnomon.modelM * transM;
@@ -647,7 +654,7 @@ void A2::rotate(bool view) {
 		rotateM = glm::inverse(rotateM);
 		m_viewM = rotateM * m_viewM;
 		m_camera.updateCamera(m_viewM);
-		m_frustum = createFrustum();
+		// m_frustum = createFrustum();
 	} else {
 		m_cube.modelM = m_cube.modelM * rotateM;
 		m_modelGnomon.modelM = m_modelGnomon.modelM * rotateM;
@@ -658,9 +665,9 @@ void A2::perspective() {
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	if (m_mouseButton == MouseButton::LEFT) {
 		fov = glm::clamp(fov + offset * 50, 5.0f, 160.0f);
-		glm::mat4 scaleM(1.0f);
-		scaleM[2][2] = glm::clamp(1 + offset, 0.1f, 5.0f);
-		m_cube.modelM = m_cube.modelM * scaleM;
+		// glm::mat4 scaleM(1.0f);
+		// scaleM[2][2] = glm::clamp(1 + offset, 0.1f, 5.0f);
+		// m_cube.modelM = m_cube.modelM * scaleM;
 	}
 	else if (m_mouseButton == MouseButton::MIDDLE) {
 		near = glm::clamp(near + offset * 10, 0.0f, far);
@@ -674,7 +681,7 @@ void A2::perspective() {
 Frustum A2::createFrustum()
 {
     Frustum frustum;
-	float aspect = float( m_windowWidth) / float( m_windowHeight );
+	float aspect = 1;
     float halfFarHeight = far * tanf(0.5 * glm::radians(fov));
     float halfFarWidth = halfFarHeight * aspect;
     glm::vec3 farCenter = far * m_camera.cameraFront;
@@ -731,7 +738,7 @@ void Gnomon::initGnomon() {
 	edges = {
 		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.125f, 0.0f, -2.0f, 1.0f)},
 		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.125f, -2.0f, 1.0f)},
-		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.0f, -2.125f, 1.0f)}
+		{vec4(0.0f, 0.0f, -2.0f, 1.0f), vec4(0.0f, 0.0f, -1.875f, 1.0f)}
 	};
 	
 	if (model) {
@@ -767,15 +774,17 @@ Plane::Plane(glm::vec3 p, glm::vec3 norm) :
 }
 
 bool Plane::clipLine(glm::vec3& p1, glm::vec3& p2) {
-	int wecA = glm::dot((p1 - point), norm);
-	int wecB = glm::dot((p2 - point), norm);
+	float wecA = glm::dot((p1 - point), norm);
+	float wecB = glm::dot((p2 - point), norm);
 	if (wecA < 0 && wecB < 0) {
 		return false;
 	}
 	if ( wecA >= 0 && wecB >= 0 ) {
 		return true;
 	}
+	std::cout <<  wecA << "  " << wecB << " " <<std::endl;
 	float t = wecA / (wecA - wecB);
+	// std::cout << wecA << "  " << wecB << " " << t <<std::endl;
 	if ( wecA < 0 ) {
 		p1 = p1 + t * (p2 - p1);
 	} else {
@@ -785,10 +794,13 @@ bool Plane::clipLine(glm::vec3& p1, glm::vec3& p2) {
 }
 
 bool Frustum::isInsideFrustum(glm::vec3& p1, glm::vec3& p2) {
+	int i = 0;
 	for (Plane& plane: planes) {
 		if (!plane.clipLine(p1, p2)) {
+			std::cout << i << std::endl;
 			return false;
 		}
+		++i;
 	}
 	return true;
 }
