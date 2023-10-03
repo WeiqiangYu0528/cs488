@@ -28,9 +28,10 @@ VertexData::VertexData()
 // Constructor
 A2::A2()
 	: m_currentLineColour(vec3(0.0f)),
-	  m_mouseButton(MouseButton::None),
 	  m_mouseButtonActive(false),
 	  m_leftMouseButtonActive(false),
+	  m_rightMouseButtonActive(false),
+	  m_middleMouseButtonActive(false),
 	  m_mouse_GL_coordinate(vec2(0.0)),
 	  m_prev_mouse_GL_coordinate(vec2(0.0)),
 	  m_mode(Mode::RotateModel),
@@ -347,7 +348,7 @@ bool A2::mouseMoveEvent (
 
 	if (m_mouseButtonActive) {
 		transform();
-		if (m_leftMouseButtonActive) {
+		if (m_leftMouseButtonActive && m_mode == Mode::Viewport) {
 			m_viewport_end_coordinate.x = glm::clamp(m_mouse_GL_coordinate.x, -0.995f, 0.995f);
 			m_viewport_end_coordinate.y = glm::clamp(m_mouse_GL_coordinate.y, -0.995f, 0.995f);
 		}
@@ -372,17 +373,17 @@ bool A2::mouseButtonInputEvent (
 		if (!ImGui::IsMouseHoveringAnyWindow()) {
 			m_mouseButtonActive = true;
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
-				m_mouseButton = MouseButton::LEFT;
+				m_leftMouseButtonActive = true;
 				if (m_mode == Mode::Viewport) {
-					m_leftMouseButtonActive = true;
 					m_viewport_start_coordinate = m_mouse_GL_coordinate;
 					m_viewport_end_coordinate = m_mouse_GL_coordinate;
 				}
 			}
 			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-				m_mouseButton = MouseButton::MIDDLE;
-			} else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-				m_mouseButton = MouseButton::RIGHT;
+				m_middleMouseButtonActive = true;
+			} 
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_rightMouseButtonActive = true;
 			}
 		}
 	}
@@ -390,9 +391,14 @@ bool A2::mouseButtonInputEvent (
 	if (actions == GLFW_RELEASE) {
 		if (!ImGui::IsMouseHoveringAnyWindow()) {
 			m_mouseButtonActive = false;
-			m_mouseButton = MouseButton::None;
-			if (m_leftMouseButtonActive) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
 				m_leftMouseButtonActive = false;
+			}
+			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_middleMouseButtonActive = false;
+			} 
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_rightMouseButtonActive = false;
 			}
 		}
 	}
@@ -485,7 +491,7 @@ bool A2::keyInputEvent (
 void A2::reset() {
 	fov = 30.0f;
 	near = 1.0f;
-	far = 100.0f;
+	far = 30.0f;
 	m_cube.initCube();
 	m_worldGnomon.initGnomon();
 	m_modelGnomon.initGnomon();
@@ -501,7 +507,8 @@ void A2::reset() {
 	m_currentLineColour = glm::vec3(0.0f);
 	m_mouseButtonActive = false;
 	m_leftMouseButtonActive = false;
-	m_mouseButton = MouseButton::None;
+	m_middleMouseButtonActive = false;
+	m_rightMouseButtonActive = false;
 	initProjectionMatrix();
 }
 
@@ -605,14 +612,14 @@ void A2::homogenize(glm::vec4& position) {
 void A2::translate(bool view) {
 	glm::mat4 transM(1.0f);
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
-	if (m_mouseButton == MouseButton::LEFT) {		
-    	transM[3] = glm::vec4(offset, 0.0f, 0.0f, 1.0f);
+	if (m_leftMouseButtonActive) {		
+    	transM[3][0] = offset;
 	}
-	else if (m_mouseButton == MouseButton::MIDDLE) {
-		transM[3] = glm::vec4(0.0f, offset, 0.0f, 1.0f);
+	if (m_middleMouseButtonActive) {
+		transM[3][1] = offset;
 	}
-	else if (m_mouseButton == MouseButton::RIGHT) {
-		transM[3] = glm::vec4(0.0f, 0.0f, offset, 1.0f);
+	if (m_rightMouseButtonActive) {
+		transM[3][2] = offset;
 	}
 	if (view) {
 		m_camera.updateCamera(transM);
@@ -627,41 +634,45 @@ void A2::translate(bool view) {
 void A2::scale() {
 	glm::mat4 scaleM(1.0f);
 	float offset = std::max(0.0f, 1.0f + m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x);
-	if (m_mouseButton == MouseButton::LEFT) {
+	if (m_leftMouseButtonActive) {
     	scaleM[0][0] = offset;
 	}
-	else if (m_mouseButton == MouseButton::MIDDLE) {
+	if (m_middleMouseButtonActive) {
 		scaleM[1][1] = offset;
 	}
-	else if (m_mouseButton == MouseButton::RIGHT) {
+	if (m_rightMouseButtonActive) {
 		scaleM[2][2] = offset;
 	}
 	m_cube.modelM = m_cube.modelM * scaleM;
 }
 
 void A2::rotate(bool view) {
-	glm::mat4 rotateM(1.0f);
+	glm::mat4 rotateX(1.0f);
+	glm::mat4 rotateY(1.0f);
+	glm::mat4 rotateZ(1.0f);
+	glm::mat4 rotateM;
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	float cosine = cosf(offset);
 	float sine = sinf(offset);
-	if (m_mouseButton == MouseButton::LEFT) {
-    	rotateM[1][1] = cosine;
-		rotateM[1][2] = sine;
-		rotateM[2][1] = -sine;
-		rotateM[2][2] = cosine;
+	if (m_leftMouseButtonActive) {
+    	rotateX[1][1] = cosine;
+		rotateX[1][2] = sine;
+		rotateX[2][1] = -sine;
+		rotateX[2][2] = cosine;
 	}
-	else if (m_mouseButton == MouseButton::MIDDLE) {
-		rotateM[0][0] = cosine;
-		rotateM[0][2] = -sine;
-		rotateM[2][0] = sine;
-		rotateM[2][2] = cosine;
+	if (m_middleMouseButtonActive) {
+		rotateY[0][0] = cosine;
+		rotateY[0][2] = -sine;
+		rotateY[2][0] = sine;
+		rotateY[2][2] = cosine;
 	}
-	else if (m_mouseButton == MouseButton::RIGHT) {
-		rotateM[0][0] = cosine;
-		rotateM[0][1] = sine;
-		rotateM[1][0] = -sine;
-		rotateM[1][1] = cosine;
+	if (m_rightMouseButtonActive) {
+		rotateZ[0][0] = cosine;
+		rotateZ[0][1] = sine;
+		rotateZ[1][0] = -sine;
+		rotateZ[1][1] = cosine;
 	}
+	rotateM = rotateX * rotateY * rotateZ;
 	if (view) {
 		m_camera.updateCamera(rotateM);
 		rotateM = glm::inverse(rotateM);
@@ -674,14 +685,14 @@ void A2::rotate(bool view) {
 
 void A2::perspective() {
 	float offset = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
-	if (m_mouseButton == MouseButton::LEFT) {
+	if (m_leftMouseButtonActive) {
 		fov = glm::clamp(fov + offset * 50, 5.0f, 160.0f);
 	}
-	else if (m_mouseButton == MouseButton::MIDDLE) {
-		near = glm::clamp(near + offset * 10, 0.0f, far);
+	else if (m_middleMouseButtonActive) {
+		near = glm::clamp(near + offset * 20, 0.0f, far);
 	}
-	else if (m_mouseButton == MouseButton::RIGHT) {
-		far = glm::clamp(far + offset * 10, near, 100.0f);
+	else if (m_rightMouseButtonActive) {
+		far = glm::clamp(far + offset * 50, near, 30.0f);
 	}
 	initProjectionMatrix();
 }

@@ -70,13 +70,6 @@ public:
 	bool clipLine(glm::vec4& line, glm::vec4& p1, glm::vec4& p2);
 };
 
-enum class MouseButton {
-	None,
-	LEFT,
-	MIDDLE,
-	RIGHT
-};
-
 enum class Mode {
 	RotateView,
 	TranslateView,
@@ -157,7 +150,8 @@ protected:
 	// True if mouse button is currently down.
 	bool m_mouseButtonActive;
 	bool m_leftMouseButtonActive;
-	MouseButton m_mouseButton;
+	bool m_rightMouseButtonActive;
+	bool m_middleMouseButtonActive;
 	Camera m_camera;
 	Frustum m_frustum;
 
@@ -165,7 +159,7 @@ protected:
 	int m_mode_index;
 	float fov = 30.0f;
 	float near = 1.0f;
-	float far = 100.0f;
+	float far = 30.0f;
 
 	glm::mat4 m_viewM;
 	glm::mat4 m_projM;
