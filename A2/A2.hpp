@@ -52,7 +52,8 @@ class Camera {
 public:
 	Camera();
 	void initCamera();
-	void updateCamera(glm::mat4& viewM);
+	void updateCamera(glm::mat4& trans);
+	void initViewMatrix(glm::mat4& viewM);
 
 	glm::vec3 up;
 	glm::vec3 cameraPos;
@@ -61,23 +62,12 @@ public:
 	glm::vec3 cameraUp;
 };
 
-class Plane {
-public:
-	Plane() = default;
-	Plane(glm::vec3 p, glm::vec3 norm);
-	bool clipLine(glm::vec3& p1, glm::vec3& p2);
-
-	glm::vec3 norm;
-	glm::vec3 point;
-};
-
 class Frustum {
 public:
-
-	Plane planes[6];
-
+	glm::vec4 viewLines[6];
 	Frustum() = default;
-	bool isInsideFrustum(glm::vec3& p1, glm::vec3& p2);
+	bool isInsideFrustum(glm::vec4& p1, glm::vec4& p2);
+	bool clipLine(glm::vec4& line, glm::vec4& p1, glm::vec4& p2);
 };
 
 enum class MouseButton {
@@ -132,17 +122,18 @@ protected:
 	);
 
 	void reset();
+	void initProjectionMatrix();
 	void drawViewport();
 	void drawCube();
 	void drawGnomon(Gnomon& gnomon);
-	glm::vec2 projection(glm::vec3& position);
+	void homogenize(glm::vec4& position);
 	void translate(bool view);
 	void scale();
 	void rotate(bool view);
 	void perspective();
 	void transform();
-	void viewportTransform(glm::vec2& position);
-	glm::vec4 getViewPosition(glm::vec4& position, glm::mat4& modelM);
+	glm::vec2 viewportTransform(glm::vec4& position);
+	glm::vec4 getProjectedPosition(glm::vec4& position, glm::mat4& modelM);
 	Frustum createFrustum();
 
 	// bool clipNearPlane(glm::vec4& v1, glm::vec4& v2);
@@ -172,11 +163,12 @@ protected:
 
 	Mode m_mode;
 	int m_mode_index;
-	float fov = 60.0f;
+	float fov = 30.0f;
 	float near = 1.0f;
-	float far = 10.0f;
+	float far = 100.0f;
 
 	glm::mat4 m_viewM;
+	glm::mat4 m_projM;
 
 	glm::vec3 m_currentLineColour;
 
