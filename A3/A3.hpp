@@ -10,13 +10,39 @@
 #include "SceneNode.hpp"
 
 #include <glm/glm.hpp>
+#include <list>
 #include <memory>
+#include <stack>
+#include <map>
+#include <unordered_map>
 
 struct LightSource {
 	glm::vec3 position;
 	glm::vec3 rgbIntensity;
 };
 
+class Command
+{
+public:
+  virtual ~Command() {}
+  virtual void execute() = 0;
+};
+
+class MoveCommand : public Command
+{
+public:
+  MoveCommand(glm::mat4& translationM, glm::mat4& rotationM);
+  virtual void execute(glm::mat4& transM, bool translation);
+  virtual void redo();
+  virtual void undo();
+
+private:
+  glm::mat4 translation_, rotation_;
+  std::list<glm::mat4> translationList;
+  std::list<glm::mat4> rotationList;
+  std::list<glm::mat4>::iterator curTransNode;
+  std::list<glm::mat4>::iterator curRotNode;
+};
 
 class A3 : public CS488Window {
 public:
@@ -49,11 +75,32 @@ protected:
 
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
-	void renderSceneGraph(const SceneNode &node);
+	void renderSceneGraph(const SceneNode *node);
 	void renderArcCircle();
+	void traverseSceneGraph(const SceneNode *node);
+	void updateModelMatrix();
+	void updateSceneNodeTransformations();
+	void initModelStack();
+	void initArcModel();
+	void initSceneNodeMapping();
+	bool isMouseHoverOverArcCircle();
+	void getAngleAndAxis(float& angle, glm::vec3& axis);
+	glm::vec3 getTrackballVector(glm::vec2& mousePos);
+	glm::mat4 getRotationMatrix(float& angle, glm::vec3& axis);
+
+	void resetPosition();
+	void resetOrientation();
+	void resetJoints();
+	void resetAll();
 
 	glm::mat4 m_perpsective;
 	glm::mat4 m_view;
+	glm::mat4 m_model;
+	glm::mat4 m_arc_model;
+	glm::mat4 m_arc_model_invert;
+	glm::mat4 m_translation;
+	glm::mat4 m_rotation;
+	std::stack<glm::mat4> m_model_stack;
 
 	LightSource m_light;
 
@@ -79,4 +126,22 @@ protected:
 	std::string m_luaSceneFile;
 
 	std::shared_ptr<SceneNode> m_rootNode;
+
+	int m_interaction_mode;
+	bool m_mouse_button_active;
+	bool m_left_mouse_button_active;
+	bool m_middle_mouse_button_active;
+	bool m_right_mouse_button_active;
+	bool renderArcball;
+	bool zBuffer;
+	bool backfaceCulling;
+	bool frontfaceCulling;
+
+	glm::vec2 m_mouse_GL_coordinate;
+	glm::vec2 m_prev_mouse_GL_coordinate;
+
+	// std::unique_ptr<MoveCommand* > m_command;
+	std::map<int, SceneNode *> m_nodeMap;
+	std::unordered_map<int, std::vector<SceneNode *>> m_jointMap;
+	// glm::mat4 vAxisRotMatrix(glm::vec3& axis);
 };

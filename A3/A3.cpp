@@ -31,7 +31,21 @@ A3::A3(const std::string & luaSceneFile)
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_vao_arcCircle(0),
-	  m_vbo_arcCircle(0)
+	  m_vbo_arcCircle(0),
+	  m_interaction_mode(0),
+	  m_left_mouse_button_active(false),
+	  m_right_mouse_button_active(false),
+	  m_middle_mouse_button_active(false),
+	  m_mouse_button_active(false),
+	  m_mouse_GL_coordinate(1.0f),
+	  m_prev_mouse_GL_coordinate(1.0f),
+	  renderArcball(false),
+	  zBuffer(true),
+	  backfaceCulling(false),
+	  frontfaceCulling(false),
+	  m_translation(mat4()),
+	  m_rotation(mat4()),
+	  m_model(mat4())
 {
 
 }
@@ -85,11 +99,51 @@ void A3::init()
 
 	initLightSources();
 
+	initArcModel();
+
+	initModelStack();
+
+	initSceneNodeMapping();
+
+	// m_command = make_unique<MoveCommand* >(m_translation, m_rotation);
 
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
 	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
 	// this point.
+}
+
+void A3::initModelStack() {
+	while( !m_model_stack.empty() ) {
+		m_model_stack.pop();
+	}
+	m_model_stack.push(glm::mat4());
+}
+
+void A3::initArcModel() {
+	float aspect = float(m_framebufferWidth)/float(m_framebufferHeight);
+	if( aspect > 1.0 ) {
+		m_arc_model = glm::scale( glm::mat4(), glm::vec3( 0.5/aspect, 0.5, 1.0 ) );
+	} else {
+		m_arc_model = glm::scale( glm::mat4(), glm::vec3( 0.5, 0.5*aspect, 1.0 ) );
+	}
+	m_arc_model_invert = glm::inverse(m_arc_model);
+}
+
+void A3::initSceneNodeMapping() {
+	SceneNode * root = m_rootNode.get();
+	root->traverse(m_nodeMap, m_jointMap);
+	// for (auto it = m_nodeMap.begin(); it != m_nodeMap.end(); ++it) {
+	// 	SceneNode * node = it->second;
+	// 	cout << it->first << " " << node->m_name << endl;
+	// }
+	// for (auto it = m_jointMap.begin(); it != m_jointMap.end(); ++it) {
+	// 	auto& nodeArr = it->second;
+	// 	for (SceneNode* temp: nodeArr) {
+	// 		cout << it->first <<  " " << temp->m_name << endl;
+	// 	}
+	// 	cout << endl;
+	// }
 }
 
 //----------------------------------------------------------------------------------------
@@ -259,8 +313,9 @@ void A3::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A3::initLightSources() {
 	// World-space position
-	m_light.position = vec3(10.0f, 10.0f, 10.0f);
-	m_light.rgbIntensity = vec3(0.0f); // light
+	// m_light.position = vec3(10.0f, 10.0f, 10.0f);
+	m_light.position = vec3(-2.0f, 5.0f, 0.5f);
+	m_light.rgbIntensity = vec3(1.0f); // light
 }
 
 //----------------------------------------------------------------------------------------
@@ -300,6 +355,15 @@ void A3::uploadCommonSceneUniforms() {
 void A3::appLogic()
 {
 	// Place per frame, application logic here ...
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+
+	if (m_interaction_mode == 0 && m_mouse_button_active) {
+		updateModelMatrix();
+	} 
+
+	if (m_interaction_mode == 1 && m_mouse_button_active) {
+		updateSceneNodeTransformations();
+	}
 
 	uploadCommonSceneUniforms();
 }
@@ -320,6 +384,51 @@ void A3::guiLogic()
 		firstRun = false;
 	}
 
+	// Add more gui elements here here ...
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Application")) {
+			if (ImGui::MenuItem("Reset Position", "I")) {
+				// Handle the "Open" action
+				resetPosition();
+			}
+			if (ImGui::MenuItem("Reset Orientation", "O")) {
+				// Handle the "Save" action
+				resetOrientation();
+			}
+			if (ImGui::MenuItem("Reset Joints", "S")) {
+				// Handle the "Save" action
+				resetJoints();
+			}
+			if (ImGui::MenuItem("Reset All", "A")) {
+				// Handle the "Save" action
+				resetAll();
+			}
+			if (ImGui::MenuItem("Quit", "Q")) {
+				// Handle the "Save" action
+				glfwSetWindowShouldClose(m_window, GL_TRUE);
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Edit")) {
+			if (ImGui::MenuItem("Undo", "U")) {
+				// Handle the "Open" action
+			}
+			if (ImGui::MenuItem("Redo", "R")) {
+				// Handle the "Save" action
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Options")) {
+			ImGui::Checkbox("Circle, C", &renderArcball);
+			ImGui::Checkbox("Z-buffer, Z", &zBuffer);
+			ImGui::Checkbox("Backface culling, B", &backfaceCulling);
+			ImGui::Checkbox("Frontface culling, F", &frontfaceCulling);
+			ImGui::EndMenu();
+		}
+		// Add more menus as needed
+		ImGui::EndMainMenuBar();
+	}
+
 	static bool showDebugWindow(true);
 	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
 	float opacity(0.5f);
@@ -327,8 +436,8 @@ void A3::guiLogic()
 	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
 			windowFlags);
 
-
-		// Add more gui elements here here ...
+		ImGui::RadioButton( "Position/Orientation (P)", &m_interaction_mode, 0);
+		ImGui::RadioButton( "Joints (J)",  &m_interaction_mode, 1);
 
 
 		// Create Button, and check if it was clicked:
@@ -337,6 +446,7 @@ void A3::guiLogic()
 		}
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+		ImGui::Text( "x: %.5f, y: %.5f",  m_mouse_GL_coordinate.x,  m_mouse_GL_coordinate.y);
 
 	ImGui::End();
 }
@@ -346,14 +456,15 @@ void A3::guiLogic()
 static void updateShaderUniforms(
 		const ShaderProgram & shader,
 		const GeometryNode & node,
-		const glm::mat4 & viewMatrix
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
 ) {
 
 	shader.enable();
 	{
 		//-- Set ModelView matrix:
 		GLint location = shader.getUniformLocation("ModelView");
-		mat4 modelView = viewMatrix * node.trans;
+		mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
@@ -366,7 +477,7 @@ static void updateShaderUniforms(
 
 		//-- Set Material values:
 		location = shader.getUniformLocation("material.kd");
-		vec3 kd = node.material.kd;
+		vec3 kd = node.isSelected ? glm::vec3( 0.4, 0.6, 0.74) : node.material.kd;
 		glUniform3fv(location, 1, value_ptr(kd));
 		CHECK_GL_ERRORS;
 	}
@@ -380,16 +491,40 @@ static void updateShaderUniforms(
  */
 void A3::draw() {
 
-	glEnable( GL_DEPTH_TEST );
-	renderSceneGraph(*m_rootNode);
+	if (zBuffer) {
+		glEnable( GL_DEPTH_TEST );
+	}
+	if (backfaceCulling || frontfaceCulling) {
+		glEnable( GL_CULL_FACE );
+		if (backfaceCulling && frontfaceCulling) {
+			glCullFace( GL_FRONT_AND_BACK );
+		} else if (backfaceCulling) {
+			glCullFace( GL_BACK );
+		} else {
+			glCullFace( GL_FRONT );
+		}
+	}
+	
+	glEnable(GL_STENCIL_TEST);
+  	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
+	if (renderArcball) {
+		renderArcCircle();
+	}
+	renderSceneGraph(m_rootNode.get());
 
-	glDisable( GL_DEPTH_TEST );
-	renderArcCircle();
+	if (zBuffer) {
+		glDisable( GL_DEPTH_TEST );
+	}
+	if (backfaceCulling || frontfaceCulling) {
+		glDisable( GL_CULL_FACE );
+	}
+
+	glDisable( GL_STENCIL_TEST );
 }
 
 //----------------------------------------------------------------------------------------
-void A3::renderSceneGraph(const SceneNode & root) {
+void A3::renderSceneGraph(const SceneNode * root) {
 
 	// Bind the VAO once here, and reuse for all GeometryNode rendering below.
 	glBindVertexArray(m_vao_meshData);
@@ -407,15 +542,25 @@ void A3::renderSceneGraph(const SceneNode & root) {
 	// could put a set of mutually recursive functions in this class, which
 	// walk down the tree from nodes of different types.
 
-	for (const SceneNode * node : root.children) {
+	m_model = root->get_transform() * m_translation * m_rotation * glm::inverse(root->get_transform()); 
+	traverseSceneGraph(root);
 
-		if (node->m_nodeType != NodeType::GeometryNode)
-			continue;
+	glBindVertexArray(0);
+	CHECK_GL_ERRORS;
+}
 
+void A3::traverseSceneGraph(const SceneNode *node) {
+	m_model_stack.push(node->get_transform());
+	m_model = m_model * m_model_stack.top();
+
+	for (SceneNode * childNode : node->children) {
+		traverseSceneGraph(childNode);
+	}
+
+	if (node->m_nodeType == NodeType::GeometryNode) {
 		const GeometryNode * geometryNode = static_cast<const GeometryNode *>(node);
-
-		updateShaderUniforms(m_shader, *geometryNode, m_view);
-
+		glStencilFunc(GL_ALWAYS, geometryNode->m_nodeId + 1, -1);
+		updateShaderUniforms(m_shader, *geometryNode, m_view, m_model);
 
 		// Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
 		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
@@ -424,27 +569,21 @@ void A3::renderSceneGraph(const SceneNode & root) {
 		m_shader.enable();
 		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
 		m_shader.disable();
+
+		// node->set_transform(prevModel);
 	}
 
-	glBindVertexArray(0);
-	CHECK_GL_ERRORS;
+	m_model = m_model * glm::inverse(m_model_stack.top());
+	m_model_stack.pop();
 }
-
 //----------------------------------------------------------------------------------------
 // Draw the trackball circle.
 void A3::renderArcCircle() {
-	glBindVertexArray(m_vao_arcCircle);
 
+	glBindVertexArray(m_vao_arcCircle);
 	m_shader_arcCircle.enable();
 		GLint m_location = m_shader_arcCircle.getUniformLocation( "M" );
-		float aspect = float(m_framebufferWidth)/float(m_framebufferHeight);
-		glm::mat4 M;
-		if( aspect > 1.0 ) {
-			M = glm::scale( glm::mat4(), glm::vec3( 0.5/aspect, 0.5, 1.0 ) );
-		} else {
-			M = glm::scale( glm::mat4(), glm::vec3( 0.5, 0.5*aspect, 1.0 ) );
-		}
-		glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
+		glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( m_arc_model ) );
 		glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
 	m_shader_arcCircle.disable();
 
@@ -486,6 +625,11 @@ bool A3::mouseMoveEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
+	m_mouse_GL_coordinate = vec2 (
+			(2.0f * xPos) / m_windowWidth - 1.0f,
+			1.0f - ( (2.0f * yPos) / m_windowHeight)
+	);
 
 	return eventHandled;
 }
@@ -502,6 +646,54 @@ bool A3::mouseButtonInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (actions == GLFW_PRESS) {
+		m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
+		if (!ImGui::IsMouseHoveringAnyWindow()) {
+			m_mouse_button_active = true;
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				m_left_mouse_button_active = true;
+			}
+			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_middle_mouse_button_active = true;
+			} 
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_right_mouse_button_active = true;
+			}
+
+			if (m_interaction_mode == 1 && m_left_mouse_button_active) {
+				double xpos, ypos;
+				GLuint index;
+				glfwGetCursorPos( m_window, &xpos, &ypos );
+				GLint x = xpos * double(m_framebufferWidth) / double(m_windowWidth);
+				GLint y = ypos * double(m_framebufferHeight) / double(m_windowHeight);
+				y = m_framebufferHeight - y - 1;
+				glReadPixels(x, y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+
+				if ( index != 0 ) {
+					bool isSelected = m_nodeMap[index - 1]->isSelected;
+					m_nodeMap[index - 1]->isSelected = !isSelected;
+					for (SceneNode* node: m_jointMap[index - 2]) {
+						node->isSelected = !isSelected;
+					}
+				}
+			}
+		}
+	}
+
+	if (actions == GLFW_RELEASE) {
+		if (!ImGui::IsMouseHoveringAnyWindow()) {
+			m_mouse_button_active = false;
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				m_left_mouse_button_active = false;
+			}
+			else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_middle_mouse_button_active = false;
+			} 
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_right_mouse_button_active = false;
+			}
+		}
+	}
 
 	return eventHandled;
 }
@@ -550,8 +742,302 @@ bool A3::keyInputEvent (
 			show_gui = !show_gui;
 			eventHandled = true;
 		}
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
 	}
 	// Fill in with event handling code...
 
 	return eventHandled;
 }
+
+void A3::updateModelMatrix() {
+	glm::mat4 transM(1.0f);
+	float offsetX = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
+	float offsetY = m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y;
+	if (m_left_mouse_button_active) {	
+		// transM[3][0] = offsetX;
+		// transM[3][1] = offsetY;
+		if (isMouseHoverOverArcCircle()) {
+			float angle = 0.0f;
+			glm::vec3 axis(0.0f);
+			getAngleAndAxis(angle, axis);
+			axis = glm::normalize(axis);
+			transM = getRotationMatrix(angle, axis);
+			transM = glm::transpose(transM);
+			// transM = vAxisRotMatrix(axis);
+			// transM = glm::transpose(transM);
+		} else {
+			float cosine = cosf(offsetX);
+			float sine = sinf(offsetX);
+			transM[0][0] = cosine;
+			transM[0][1] = sine;
+			transM[1][0] = -sine;
+			transM[1][1] = cosine;
+		}
+		m_rotation = m_rotation * transM;
+	}
+	if (m_middle_mouse_button_active) {
+		transM[3][2] = -offsetY;
+		m_translation =  m_translation * transM;
+	}
+	if (m_right_mouse_button_active) {
+		// if (isMouseHoverOverArcCircle()) {
+		// 	float angle = 0.0f;
+		// 	glm::vec3 axis(0.0f);
+		// 	getAngleAndAxis(angle, axis);
+		// 	transM = getRotationMatrix(angle, axis);
+		// } else {
+		// 	float cosine = cosf(offsetX);
+		// 	float sine = sinf(offsetX);
+		// 	transM[0][0] = cosine;
+		// 	transM[0][1] = sine;
+		// 	transM[1][0] = -sine;
+		// 	transM[1][1] = cosine;
+		// }
+	}
+}
+
+void A3::updateSceneNodeTransformations() {
+	glm::mat4 transM(1.0f);
+	float offsetX = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
+	float offsetY = m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y;
+	if (m_middle_mouse_button_active) {
+		// float cosine = cosf(offsetX);
+		// float sine = sinf(offsetX);
+		// transM[1][1] = cosine;
+		// transM[1][2] = sine;
+		// transM[2][1] = -sine;
+		// transM[2][2] = cosine;
+		transM = glm::rotate(transM, glm::radians(offsetY), glm::vec3(1.0f, 1.0f, 0.0f));
+		for (auto& nodePair: m_nodeMap) {
+			SceneNode* node = nodePair.second;
+			if (node->m_nodeType == NodeType::JointNode && node->isSelected) {
+				node->set_transform(node->get_transform() * transM);
+			}
+		}
+	}
+	
+	if (m_right_mouse_button_active) {
+		// float cosine = cosf(offsetY);
+		// float sine = sinf(offsetY);
+		// transM[1][1] = cosine;
+		// transM[1][2] = sine;
+		// transM[2][1] = -sine;
+		// transM[2][2] = cosine;
+		float rotatedRadians = glm::radians(offsetY * 100);
+		double rotatedAngle = glm::degrees(rotatedRadians);
+		transM = glm::rotate(transM, rotatedRadians, glm::vec3(1.0f, 0.0f, 0.0f));
+		for (auto& nodePair: m_nodeMap) {
+			SceneNode* node = nodePair.second;
+			if (node->m_nodeType == NodeType::JointNode && node->isSelected) {
+				JointNode* jointNode = static_cast<JointNode*>(node);
+				double x_angle = jointNode->x_angle + rotatedAngle;
+				cout << rotatedAngle << "  " << x_angle << " " << jointNode->m_joint_x.min << " " << jointNode->m_joint_x.max << endl;
+				if (jointNode->m_joint_x.min <= x_angle && 
+					jointNode->m_joint_x.max >= x_angle) {
+					jointNode->x_angle = x_angle;
+					jointNode->set_transform(jointNode->get_transform() * transM);
+				}
+			}
+		}
+	}
+}
+
+void A3::resetPosition() {
+	m_translation = glm::mat4();
+}
+
+void A3::resetOrientation() {
+	m_rotation = glm::mat4();
+}
+
+void A3::resetJoints() {
+	
+}
+
+void A3::resetAll() {
+	resetPosition();
+	resetOrientation();
+	resetJoints();
+}
+
+bool A3::isMouseHoverOverArcCircle() {
+	glm::vec2 mousePos(m_arc_model_invert * glm::vec4(m_mouse_GL_coordinate, 0.0f, 1.0f));
+	if (mousePos.x * mousePos.x + mousePos.y * mousePos.y <= 1.0f) {
+		return true;
+	}
+	return false;
+}
+
+glm::vec3 A3::getTrackballVector(glm::vec2& mousePos) {
+	glm::vec3 trackballPos(m_arc_model_invert * glm::vec4(mousePos, 0.0f, 1.0f));
+	float z_square = 1 - (trackballPos.x * trackballPos.x + trackballPos.y * trackballPos.y);
+	if (z_square >= 0) {
+		trackballPos.z = sqrt(z_square);
+	} else {
+		trackballPos = glm::normalize(trackballPos); 
+	}
+	return trackballPos;
+}
+
+void A3::getAngleAndAxis(float& angle, glm::vec3& axis) {
+	glm::vec3 prev = getTrackballVector(m_prev_mouse_GL_coordinate);
+	glm::vec3 cur = getTrackballVector(m_mouse_GL_coordinate);
+	angle = acos(std::min(1.0f, glm::dot(prev, cur)));
+	axis = glm::cross(prev, cur);
+}
+
+glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
+	// chose the x-axis
+	float x = axis.x;
+	float y = axis.y;
+	float z = axis.z;
+	glm::mat4 RyPhi1(1.0f);
+	glm::mat4 RzPsi1(1.0f);
+	glm::mat4 RyPhi2(1.0f);
+	glm::mat4 RzPsi2(1.0f);
+	glm::mat4 Rx(1.0f);
+
+	float cosine = cosf(angle);
+	float sine = sinf(angle);
+
+	float cosPhi = x / sqrt(x * x + z * z);
+	float sinPhi = z / sqrt(x * x + z * z);
+	float cosPsi = sqrt(x * x + z * z);
+	float sinPsi = y;
+
+	RyPhi1[0][0] = cosPhi;
+	RyPhi1[0][2] = -sinPhi;
+	RyPhi1[2][0] = sinPhi;
+	RyPhi1[2][2] = cosPhi;
+
+	RyPhi2[0][0] = cosPhi;
+	RyPhi2[0][2] = sinPhi;
+	RyPhi2[2][0] = -sinPhi;
+	RyPhi2[2][2] = cosPhi;
+
+	RzPsi1[0][0] = cosPsi;
+	RzPsi1[0][1] = -sinPsi;
+	RzPsi1[1][0] = sinPsi;
+	RzPsi1[1][1] = cosPsi;
+
+	RzPsi2[0][0] = cosPsi;
+	RzPsi2[0][1] = sinPsi;
+	RzPsi2[1][0] = -sinPsi;
+	RzPsi2[1][1] = cosPsi;
+
+	Rx[1][1] = cosine;
+	Rx[1][2] = sine;
+	Rx[2][1] = -sine;
+	Rx[2][2] = cosine;
+
+	return RyPhi2 * RzPsi2 * Rx * RzPsi1 * RyPhi1;
+}
+
+
+
+/*******************************************************
+ * void vAxisRotMatrix(float fVecX, float fVecY, float fVecZ, Matrix mNewMat)
+ *    
+ *    Calculate the rotation matrix for rotation about an arbitrary axis.
+ *    
+ *    The axis of rotation is specified by (fVecX,fVecY,fVecZ). The length
+ *    of the vector is the amount to rotate by.
+ *
+ * Parameters: fVecX,fVecY,fVecZ - Axis of rotation
+ *             mNewMat - Output matrix of rotation in column-major format
+ *                       (ie, translation components are in column 3 on rows
+ *                       0,1, and 2).
+ *
+ *******************************************************/
+// glm::mat4 A3::vAxisRotMatrix(glm::vec3& axis) {
+//     float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
+// 	float fVecX = axis.x; 
+// 	float fVecY = axis.y;
+// 	float fVecZ = axis.z;
+
+// 	glm::mat4 mNewMat(1.0f);
+
+//     /* Find the length of the vector which is the angle of rotation
+//      * (in radians)
+//      */
+//     fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
+
+//     /* If the vector has zero length - return the identity matrix */
+//     if (fRadians > -0.000001 && fRadians < 0.000001) {
+//         return mNewMat;
+//     }
+
+//     /* Normalize the rotation vector now in preparation for making
+//      * rotation matrix. 
+//      */
+//     // fInvLength = 1 / fRadians;
+//     // fNewVecX   = fVecX * fInvLength;
+//     // fNewVecY   = fVecY * fInvLength;
+//     // fNewVecZ   = fVecZ * fInvLength;
+// 	axis = glm::normalize(axis);
+// 	fNewVecX = axis.x;
+//     fNewVecY = axis.y;
+//     fNewVecZ = axis.z;
+
+//     /* Create the arbitrary axis rotation matrix */
+//     double dSinAlpha = sin(fRadians);
+//     double dCosAlpha = cos(fRadians);
+//     double dT = 1 - dCosAlpha;
+
+//     mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
+//     mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
+//     mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
+//     mNewMat[0][3] = 0;
+
+//     mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
+//     mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
+//     mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
+//     mNewMat[1][3] = 0;
+
+//     mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
+//     mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
+//     mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
+//     mNewMat[2][3] = 0;
+
+//     mNewMat[3][0] = 0;
+//     mNewMat[3][1] = 0;
+//     mNewMat[3][2] = 0;
+//     mNewMat[3][3] = 1;
+
+// 	return mNewMat;
+// }
+
+
+MoveCommand::MoveCommand(glm::mat4& translationM, glm::mat4& rotationM)
+  : translation_(translationM),
+    rotation_(rotationM)
+  {
+	translationList.push_back(glm::mat4());
+	rotationList.push_back(glm::mat4());
+	curTransNode = translationList.begin();
+	curRotNode = rotationList.begin();
+  }
+
+ void MoveCommand::execute(glm::mat4& transM, bool translation)
+  {
+	if (translation) {
+		curTransNode++ = translationList.end();
+		translationList.push_back(transM);
+	} else {
+		curRotNode++ = rotationList.end();
+		rotationList.push_back(transM);
+	}
+  }
+
+void MoveCommand::redo() {
+
+}
+
+void MoveCommand::undo() {
+
+  }
+
+
+

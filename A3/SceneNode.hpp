@@ -9,6 +9,8 @@
 #include <list>
 #include <string>
 #include <iostream>
+#include <map>
+#include <unordered_map>
 
 enum class NodeType {
 	SceneNode,
@@ -39,7 +41,8 @@ public:
     void rotate(char axis, float angle);
     void scale(const glm::vec3& amount);
     void translate(const glm::vec3& amount);
-
+    
+    void traverse(std::map<int, SceneNode *>& nodeMap, std::unordered_map<int, std::vector<SceneNode *>>& jointMap);
 
 	friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
 
