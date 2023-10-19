@@ -19,4 +19,8 @@ public:
 
 	JointRange m_joint_x, m_joint_y;
 	double x_angle, y_angle;
+	unsigned int m_jointId;
+
+	// The number of SceneNode instances.
+	static unsigned int jointInstanceCount;
 };

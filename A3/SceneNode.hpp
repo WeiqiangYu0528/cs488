@@ -11,6 +11,7 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <utility>
 
 enum class NodeType {
 	SceneNode,
@@ -42,7 +43,7 @@ public:
     void scale(const glm::vec3& amount);
     void translate(const glm::vec3& amount);
     
-    void traverse(std::map<int, SceneNode *>& nodeMap, std::unordered_map<int, std::vector<SceneNode *>>& jointMap);
+    void traverse(std::map<int, SceneNode *>& nodeMap);
 
 	friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
 
@@ -58,8 +59,6 @@ public:
 	std::string m_name;
 	unsigned int m_nodeId;
 
-
-private:
 	// The number of SceneNode instances.
 	static unsigned int nodeInstanceCount;
 };

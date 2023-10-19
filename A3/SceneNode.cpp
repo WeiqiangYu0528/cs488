@@ -136,17 +136,9 @@ std::ostream & operator << (std::ostream & os, const SceneNode & node) {
 	return os;
 }
 
-void SceneNode::traverse(std::map<int, SceneNode *>& nodeMap, std::unordered_map<int, std::vector<SceneNode *>>& jointMap) {
+void SceneNode::traverse(std::map<int, SceneNode *>& nodeMap) {
 	nodeMap[m_nodeId] = this;
-	if (m_nodeType == NodeType::JointNode ) {
-		jointMap[m_nodeId].push_back(this);
-	}
 	for (SceneNode * child : children) {
-		child->traverse(nodeMap, jointMap);
-		if (m_nodeType == NodeType::JointNode && child->m_nodeType == NodeType::JointNode) {
-			size_t vecSize = jointMap[m_nodeId].size() + jointMap[child->m_nodeId].size();
-			jointMap[m_nodeId].reserve(vecSize);
-			jointMap[m_nodeId].insert(jointMap[m_nodeId].end(), jointMap[child->m_nodeId].begin(), jointMap[child->m_nodeId].end());
-		}
+		child->traverse(nodeMap);
 	}
 }

@@ -2,9 +2,13 @@
 
 #include "JointNode.hpp"
 
+// Static class variable
+unsigned int JointNode::jointInstanceCount = 0;
+
 //---------------------------------------------------------------------------------------
 JointNode::JointNode(const std::string& name)
-	: SceneNode(name)
+	: SceneNode(name),
+	  m_jointId(jointInstanceCount++)
 {
 	m_nodeType = NodeType::JointNode;
 }

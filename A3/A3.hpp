@@ -7,6 +7,7 @@
 #include "cs488-framework/ShaderProgram.hpp"
 #include "cs488-framework/MeshConsolidator.hpp"
 
+#include "GeometryNode.hpp"
 #include "SceneNode.hpp"
 
 #include <glm/glm.hpp>
@@ -15,6 +16,7 @@
 #include <stack>
 #include <map>
 #include <unordered_map>
+#include <utility>
 
 struct LightSource {
 	glm::vec3 position;
@@ -31,17 +33,16 @@ public:
 class MoveCommand : public Command
 {
 public:
-  MoveCommand(glm::mat4& translationM, glm::mat4& rotationM);
-  virtual void execute(glm::mat4& transM, bool translation);
+  MoveCommand();
+  virtual ~MoveCommand() = default;
+  virtual void init(std::vector<std::pair<double, double>> jointAngles);
+  virtual void execute();
   virtual void redo();
   virtual void undo();
 
 private:
-  glm::mat4 translation_, rotation_;
-  std::list<glm::mat4> translationList;
-  std::list<glm::mat4> rotationList;
-  std::list<glm::mat4>::iterator curTransNode;
-  std::list<glm::mat4>::iterator curRotNode;
+//   std::list<std::vector<std::pair<double, double>>> jointAngleList;
+//   std::list<std::vector<std::pair<double, double>>>::iterator curJointAngle;
 };
 
 class A3 : public CS488Window {
@@ -140,8 +141,8 @@ protected:
 	glm::vec2 m_mouse_GL_coordinate;
 	glm::vec2 m_prev_mouse_GL_coordinate;
 
-	// std::unique_ptr<MoveCommand* > m_command;
+	std::shared_ptr<MoveCommand> m_command;
 	std::map<int, SceneNode *> m_nodeMap;
-	std::unordered_map<int, std::vector<SceneNode *>> m_jointMap;
+	// std::unordered_map<int, std::vector<SceneNode *>> m_jointMap;
 	// glm::mat4 vAxisRotMatrix(glm::vec3& axis);
 };

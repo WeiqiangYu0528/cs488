@@ -6,7 +6,6 @@ using namespace std;
 
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
-#include "GeometryNode.hpp"
 #include "JointNode.hpp"
 
 #include <imgui/imgui.h>
@@ -105,7 +104,8 @@ void A3::init()
 
 	initSceneNodeMapping();
 
-	// m_command = make_unique<MoveCommand* >(m_translation, m_rotation);
+	m_command = std::make_shared<MoveCommand>();
+	cout << m_command << endl;
 
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
@@ -132,18 +132,22 @@ void A3::initArcModel() {
 
 void A3::initSceneNodeMapping() {
 	SceneNode * root = m_rootNode.get();
-	root->traverse(m_nodeMap, m_jointMap);
-	// for (auto it = m_nodeMap.begin(); it != m_nodeMap.end(); ++it) {
-	// 	SceneNode * node = it->second;
-	// 	cout << it->first << " " << node->m_name << endl;
-	// }
-	// for (auto it = m_jointMap.begin(); it != m_jointMap.end(); ++it) {
-	// 	auto& nodeArr = it->second;
-	// 	for (SceneNode* temp: nodeArr) {
-	// 		cout << it->first <<  " " << temp->m_name << endl;
-	// 	}
-	// 	cout << endl;
-	// }
+	root->traverse(m_nodeMap);
+
+	std::vector<std::pair<double, double>> jointAngles(JointNode::jointInstanceCount);
+	for (auto& pair: m_nodeMap) {
+		SceneNode * node = pair.second;
+		if (node->m_nodeType == NodeType::JointNode) {
+			JointNode * jointNode = static_cast<JointNode *>(node);
+			jointAngles[jointNode->m_jointId] = std::make_pair(jointNode->x_angle, jointNode->y_angle);
+		}
+	}
+
+	m_command->init(jointAngles);
+	for (auto it = m_nodeMap.begin(); it != m_nodeMap.end(); ++it) {
+		SceneNode * node = it->second;
+		cout << it->first << " " << node->m_name << endl;
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -672,9 +676,10 @@ bool A3::mouseButtonInputEvent (
 				if ( index != 0 ) {
 					bool isSelected = m_nodeMap[index - 1]->isSelected;
 					m_nodeMap[index - 1]->isSelected = !isSelected;
-					for (SceneNode* node: m_jointMap[index - 2]) {
-						node->isSelected = !isSelected;
-					}
+					m_nodeMap[index - 2]->isSelected = !isSelected;
+					// for (SceneNode* node: m_jointMap[index - 2]) {
+					// 	node->isSelected = !isSelected;
+					// }
 				}
 			}
 		}
@@ -1010,26 +1015,24 @@ glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
 // }
 
 
-MoveCommand::MoveCommand(glm::mat4& translationM, glm::mat4& rotationM)
-  : translation_(translationM),
-    rotation_(rotationM)
-  {
-	translationList.push_back(glm::mat4());
-	rotationList.push_back(glm::mat4());
-	curTransNode = translationList.begin();
-	curRotNode = rotationList.begin();
-  }
+MoveCommand::MoveCommand() 
+{
 
- void MoveCommand::execute(glm::mat4& transM, bool translation)
-  {
-	if (translation) {
-		curTransNode++ = translationList.end();
-		translationList.push_back(transM);
-	} else {
-		curRotNode++ = rotationList.end();
-		rotationList.push_back(transM);
-	}
-  }
+}
+
+void MoveCommand::init(std::vector<std::pair<double, double>> jointAngles)  
+{
+	// std::cout << "sadad" << std::endl;
+	// jointAngleList.push_back(jointAngles);
+	// std::cout << "sadad" << std::endl;
+	// curJointAngle = jointAngleList.begin();
+	// std::cout << "sadad" << std::endl;
+}
+
+void MoveCommand::execute()
+{
+	cout << "execute" << endl;
+}
 
 void MoveCommand::redo() {
 
