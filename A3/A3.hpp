@@ -17,6 +17,7 @@
 #include <map>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 struct LightSource {
 	glm::vec3 position;

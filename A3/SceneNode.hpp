@@ -12,6 +12,7 @@
 #include <map>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 enum class NodeType {
 	SceneNode,
