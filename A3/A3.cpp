@@ -756,15 +756,22 @@ void A3::updateModelMatrix() {
 	float offsetX = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	float offsetY = m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y;
 	if (m_left_mouse_button_active) {	
-		// transM[3][0] = offsetX;
-		// transM[3][1] = offsetY;
+		transM[3][0] = offsetX;
+		transM[3][1] = offsetY;
+		m_translation =  m_translation * transM;
+	}
+	if (m_middle_mouse_button_active) {
+		transM[3][2] = -offsetY;
+		m_translation =  m_translation * transM;
+	}
+	if (m_right_mouse_button_active) {
 		if (isMouseHoverOverArcCircle()) {
 			float angle = 0.0f;
 			glm::vec3 axis(0.0f);
 			getAngleAndAxis(angle, axis);
 			axis = glm::normalize(axis);
 			transM = getRotationMatrix(angle, axis);
-			transM = glm::transpose(transM);
+			// transM = glm::transpose(transM);
 			// transM = vAxisRotMatrix(axis);
 			// transM = glm::transpose(transM);
 		} else {
@@ -777,68 +784,51 @@ void A3::updateModelMatrix() {
 		}
 		m_rotation = m_rotation * transM;
 	}
-	if (m_middle_mouse_button_active) {
-		transM[3][2] = -offsetY;
-		m_translation =  m_translation * transM;
-	}
-	if (m_right_mouse_button_active) {
-		// if (isMouseHoverOverArcCircle()) {
-		// 	float angle = 0.0f;
-		// 	glm::vec3 axis(0.0f);
-		// 	getAngleAndAxis(angle, axis);
-		// 	transM = getRotationMatrix(angle, axis);
-		// } else {
-		// 	float cosine = cosf(offsetX);
-		// 	float sine = sinf(offsetX);
-		// 	transM[0][0] = cosine;
-		// 	transM[0][1] = sine;
-		// 	transM[1][0] = -sine;
-		// 	transM[1][1] = cosine;
-		// }
-	}
 }
 
 void A3::updateSceneNodeTransformations() {
+	glm::mat4 transX(1.0f);
+	glm::mat4 transY(1.0f);
 	glm::mat4 transM(1.0f);
 	float offsetX = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
 	float offsetY = m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y;
+	float rotatedRadiansX = glm::radians(offsetY * 100);
+	float rotatedRadiansY = glm::radians(offsetX * 100);
+	double rotatedAngleX = glm::degrees(rotatedRadiansX);
+	double rotatedAngleY = glm::degrees(rotatedRadiansY);
 	if (m_middle_mouse_button_active) {
-		// float cosine = cosf(offsetX);
-		// float sine = sinf(offsetX);
-		// transM[1][1] = cosine;
-		// transM[1][2] = sine;
-		// transM[2][1] = -sine;
-		// transM[2][2] = cosine;
-		transM = glm::rotate(transM, glm::radians(offsetY), glm::vec3(1.0f, 1.0f, 0.0f));
 		for (auto& nodePair: m_nodeMap) {
 			SceneNode* node = nodePair.second;
 			if (node->m_nodeType == NodeType::JointNode && node->isSelected) {
-				node->set_transform(node->get_transform() * transM);
+				JointNode* jointNode = static_cast<JointNode*>(node);
+				double x_angle = jointNode->x_angle + rotatedAngleX;
+				double y_angle = jointNode->y_angle + rotatedAngleY;
+				if (jointNode->m_joint_x.min <= x_angle && 
+					jointNode->m_joint_x.max >= x_angle) {
+					transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
+					jointNode->x_angle = x_angle;
+					jointNode->set_transform(jointNode->get_transform() * transX);
+				}
+				if (jointNode->m_joint_y.min <= y_angle && 
+					jointNode->m_joint_y.max >= y_angle) {
+					transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+					jointNode->y_angle = y_angle;
+					jointNode->set_transform(jointNode->get_transform() * transY);
+				}
 			}
 		}
 	}
 	
 	if (m_right_mouse_button_active) {
-		// float cosine = cosf(offsetY);
-		// float sine = sinf(offsetY);
-		// transM[1][1] = cosine;
-		// transM[1][2] = sine;
-		// transM[2][1] = -sine;
-		// transM[2][2] = cosine;
-		float rotatedRadians = glm::radians(offsetY * 100);
-		double rotatedAngle = glm::degrees(rotatedRadians);
-		transM = glm::rotate(transM, rotatedRadians, glm::vec3(1.0f, 0.0f, 0.0f));
-		for (auto& nodePair: m_nodeMap) {
-			SceneNode* node = nodePair.second;
-			if (node->m_nodeType == NodeType::JointNode && node->isSelected) {
-				JointNode* jointNode = static_cast<JointNode*>(node);
-				double x_angle = jointNode->x_angle + rotatedAngle;
-				cout << rotatedAngle << "  " << x_angle << " " << jointNode->m_joint_x.min << " " << jointNode->m_joint_x.max << endl;
-				if (jointNode->m_joint_x.min <= x_angle && 
-					jointNode->m_joint_x.max >= x_angle) {
-					jointNode->x_angle = x_angle;
-					jointNode->set_transform(jointNode->get_transform() * transM);
-				}
+		SceneNode* node = m_nodeMap[32];
+		if (node->isSelected) {
+			JointNode* jointNode = static_cast<JointNode*>(node);
+			double y_angle = jointNode->y_angle + rotatedAngleY;
+			if (jointNode->m_joint_y.min <= y_angle && 
+				jointNode->m_joint_y.max >= y_angle) {
+				transM = glm::rotate(transM, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+				jointNode->y_angle = y_angle;
+				jointNode->set_transform(jointNode->get_transform() * transM);
 			}
 		}
 	}
