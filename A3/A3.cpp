@@ -6,7 +6,6 @@ using namespace std;
 
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
-#include "JointNode.hpp"
 
 #include <imgui/imgui.h>
 
@@ -104,13 +103,35 @@ void A3::init()
 
 	initSceneNodeMapping();
 
-	m_command = std::make_shared<MoveCommand>();
-	cout << m_command << endl;
-
+	initMoveCommand();
+	
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
 	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
 	// this point.
+}
+
+void A3::initMoveCommand() {
+	m_jointNodes.resize(JointNode::jointInstanceCount);
+	for (auto& pair: m_nodeMap) {
+		SceneNode * node = pair.second;
+		if (node->m_nodeType == NodeType::JointNode) {
+			JointNode* jointNode = dynamic_cast<JointNode *>(node);
+			m_jointNodes[jointNode->m_jointId] = jointNode;
+		}
+	}
+
+	m_command = std::make_unique<MoveCommand>(m_jointNodes);
+	if (!m_command) {
+		std::cerr << "Failed to create move command"<< std::endl;
+	}
+
+	m_jointAngles.resize(JointNode::jointInstanceCount);
+	for (JointNode* jointNode: m_jointNodes) {
+		m_jointAngles[jointNode->m_jointId] = std::make_pair(jointNode->x_angle, jointNode->y_angle);
+	}
+
+	m_command->init(m_jointAngles);
 }
 
 void A3::initModelStack() {
@@ -133,21 +154,6 @@ void A3::initArcModel() {
 void A3::initSceneNodeMapping() {
 	SceneNode * root = m_rootNode.get();
 	root->traverse(m_nodeMap);
-
-	std::vector<std::pair<double, double>> jointAngles(JointNode::jointInstanceCount);
-	for (auto& pair: m_nodeMap) {
-		SceneNode * node = pair.second;
-		if (node->m_nodeType == NodeType::JointNode) {
-			JointNode * jointNode = static_cast<JointNode *>(node);
-			jointAngles[jointNode->m_jointId] = std::make_pair(jointNode->x_angle, jointNode->y_angle);
-		}
-	}
-
-	m_command->init(jointAngles);
-	for (auto it = m_nodeMap.begin(); it != m_nodeMap.end(); ++it) {
-		SceneNode * node = it->second;
-		cout << it->first << " " << node->m_name << endl;
-	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -416,9 +422,11 @@ void A3::guiLogic()
 		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Undo", "U")) {
 				// Handle the "Open" action
+				m_command->undo();
 			}
 			if (ImGui::MenuItem("Redo", "R")) {
 				// Handle the "Save" action
+				m_command->redo();
 			}
 			ImGui::EndMenu();
 		}
@@ -677,9 +685,6 @@ bool A3::mouseButtonInputEvent (
 					bool isSelected = m_nodeMap[index - 1]->isSelected;
 					m_nodeMap[index - 1]->isSelected = !isSelected;
 					m_nodeMap[index - 2]->isSelected = !isSelected;
-					// for (SceneNode* node: m_jointMap[index - 2]) {
-					// 	node->isSelected = !isSelected;
-					// }
 				}
 			}
 		}
@@ -696,6 +701,10 @@ bool A3::mouseButtonInputEvent (
 			} 
 			else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
 				m_right_mouse_button_active = false;
+			}
+
+			if (m_interaction_mode == 1 && (button == GLFW_MOUSE_BUTTON_MIDDLE || button == GLFW_MOUSE_BUTTON_RIGHT)) {
+				m_command->execute(m_jointAngles);
 			}
 		}
 	}
@@ -810,12 +819,14 @@ void A3::updateSceneNodeTransformations() {
 				double y_angle = jointNode->y_angle + rotatedAngleY;
 				if (jointNode->m_joint_x.min <= x_angle && 
 					jointNode->m_joint_x.max >= x_angle) {
+					m_jointAngles[jointNode->m_jointId].first = x_angle;
 					transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
 					jointNode->x_angle = x_angle;
 					jointNode->set_transform(jointNode->get_transform() * transX);
 				}
 				if (jointNode->m_joint_y.min <= y_angle && 
 					jointNode->m_joint_y.max >= y_angle) {
+					m_jointAngles[jointNode->m_jointId].second = y_angle;
 					transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
 					jointNode->y_angle = y_angle;
 					jointNode->set_transform(jointNode->get_transform() * transY);
@@ -831,6 +842,7 @@ void A3::updateSceneNodeTransformations() {
 			double y_angle = jointNode->y_angle + rotatedAngleY;
 			if (jointNode->m_joint_y.min <= y_angle && 
 				jointNode->m_joint_y.max >= y_angle) {
+				m_jointAngles[jointNode->m_jointId].second = y_angle;
 				transM = glm::rotate(transM, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
 				jointNode->y_angle = y_angle;
 				jointNode->set_transform(jointNode->get_transform() * transM);
@@ -848,7 +860,7 @@ void A3::resetOrientation() {
 }
 
 void A3::resetJoints() {
-	
+	m_command->reset();
 }
 
 void A3::resetAll() {
@@ -1005,32 +1017,62 @@ glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
 // }
 
 
-MoveCommand::MoveCommand() 
+MoveCommand::MoveCommand(std::vector<JointNode *>& jointNodes)
+: jointNodes(jointNodes)
 {
-
+	// empty
 }
 
-void MoveCommand::init(std::vector<std::pair<double, double>> jointAngles)  
+void MoveCommand::init(std::vector<std::pair<double, double>>& jointAngles)  
 {
-	// std::cout << "sadad" << std::endl;
-	// jointAngleList.push_back(jointAngles);
-	// std::cout << "sadad" << std::endl;
-	// curJointAngle = jointAngleList.begin();
-	// std::cout << "sadad" << std::endl;
+	jointAngleList.push_back(jointAngles);
+	curJointAngle = jointAngleList.begin();
 }
 
-void MoveCommand::execute()
+void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles)
 {
-	cout << "execute" << endl;
+	std::next(curJointAngle) = jointAngleList.end();
+	jointAngleList.push_back(jointAngles);
+	curJointAngle++;
 }
 
 void MoveCommand::redo() {
+	// if (curJointAngle + 1 != jointAngleList.end()) {
+
+	// }
 
 }
 
 void MoveCommand::undo() {
+	cout << "call undo" << endl;
+	if (curJointAngle != jointAngleList.begin()) {
+		glm::mat4 transX(1.0f);
+		glm::mat4 transY(1.0f);
+		auto& jointAngles = *curJointAngle;
+		auto& prevJointAngles = *(std::prev(curJointAngle));
+		cout << jointAngles.size() << endl;
+		cout << prevJointAngles.size() << endl;
+		for (size_t i = 0; i < jointAngles.size(); ++i) {
+			double x_angle = prevJointAngles[i].first - jointAngles[i].first;
+			double y_angle = prevJointAngles[i].second - jointAngles[i].second;
+			float rotatedRadiansX = glm::radians(x_angle);
+			float rotatedRadiansY = glm::radians(y_angle);
+			transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
+			cout << "before joint node";
+			jointNodes[i]->x_angle = prevJointAngles[i].first;
+			jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
+			cout << "after joint node";
+			transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+			jointNodes[i]->y_angle = prevJointAngles[i].second;
+			jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
+		}
+	} else {
+		// pop up error
+	}
+}
 
-  }
+void MoveCommand::reset() {
+}
 
 
 

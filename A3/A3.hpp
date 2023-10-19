@@ -8,6 +8,7 @@
 #include "cs488-framework/MeshConsolidator.hpp"
 
 #include "GeometryNode.hpp"
+#include "JointNode.hpp"
 #include "SceneNode.hpp"
 
 #include <glm/glm.hpp>
@@ -28,22 +29,24 @@ class Command
 {
 public:
   virtual ~Command() {}
-  virtual void execute() = 0;
+  virtual void execute(std::vector<std::pair<double, double>>& jointAngles) = 0;
 };
 
-class MoveCommand : public Command
+class MoveCommand: public Command
 {
 public:
-  MoveCommand();
+  MoveCommand(std::vector<JointNode *>& jointNodes);
   virtual ~MoveCommand() = default;
-  virtual void init(std::vector<std::pair<double, double>> jointAngles);
-  virtual void execute();
+  virtual void init(std::vector<std::pair<double, double>>& jointAngles);
+  virtual void execute(std::vector<std::pair<double, double>>& jointAngles);
   virtual void redo();
   virtual void undo();
+  virtual void reset();
 
 private:
-//   std::list<std::vector<std::pair<double, double>>> jointAngleList;
-//   std::list<std::vector<std::pair<double, double>>>::iterator curJointAngle;
+  std::vector<JointNode *> jointNodes;
+  std::list<std::vector<std::pair<double, double>>> jointAngleList;
+  std::list<std::vector<std::pair<double, double>>>::iterator curJointAngle;
 };
 
 class A3 : public CS488Window {
@@ -85,6 +88,7 @@ protected:
 	void initModelStack();
 	void initArcModel();
 	void initSceneNodeMapping();
+	void initMoveCommand();
 	bool isMouseHoverOverArcCircle();
 	void getAngleAndAxis(float& angle, glm::vec3& axis);
 	glm::vec3 getTrackballVector(glm::vec2& mousePos);
@@ -142,8 +146,9 @@ protected:
 	glm::vec2 m_mouse_GL_coordinate;
 	glm::vec2 m_prev_mouse_GL_coordinate;
 
-	std::shared_ptr<MoveCommand> m_command;
+	std::unique_ptr<MoveCommand> m_command;
 	std::map<int, SceneNode *> m_nodeMap;
-	// std::unordered_map<int, std::vector<SceneNode *>> m_jointMap;
+	std::vector<JointNode *> m_jointNodes;
+	std::vector<std::pair<double, double>> m_jointAngles;
 	// glm::mat4 vAxisRotMatrix(glm::vec3& axis);
 };
