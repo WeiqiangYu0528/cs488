@@ -35,12 +35,13 @@ A3::A3(const std::string & luaSceneFile)
 	  m_right_mouse_button_active(false),
 	  m_middle_mouse_button_active(false),
 	  m_mouse_button_active(false),
-	  m_mouse_GL_coordinate(1.0f),
-	  m_prev_mouse_GL_coordinate(1.0f),
 	  renderArcball(false),
 	  zBuffer(true),
 	  backfaceCulling(false),
 	  frontfaceCulling(false),
+	  errorMsg(""),
+	  m_mouse_GL_coordinate(1.0f),
+	  m_prev_mouse_GL_coordinate(1.0f),
 	  m_translation(mat4()),
 	  m_rotation(mat4()),
 	  m_model(mat4())
@@ -421,12 +422,14 @@ void A3::guiLogic()
 		}
 		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Undo", "U")) {
-				// Handle the "Open" action
-				m_command->undo();
+				if (!m_command->undo()) {
+					errorMsg = "Cannot undo";
+				}
 			}
 			if (ImGui::MenuItem("Redo", "R")) {
-				// Handle the "Save" action
-				m_command->redo();
+				if (!m_command->redo()) {
+					errorMsg = "Cannot redo";
+				}
 			}
 			ImGui::EndMenu();
 		}
@@ -461,6 +464,25 @@ void A3::guiLogic()
 		ImGui::Text( "x: %.5f, y: %.5f",  m_mouse_GL_coordinate.x,  m_mouse_GL_coordinate.y);
 
 	ImGui::End();
+
+	// bool showErrorWindow(true);
+	// if (true) {
+	// 	ImGui::Begin("Error", &showErrorWindow, windowFlags);
+	// 	ImGui::Text("Invalid operation, cannot ");
+	// 	if( ImGui::Button( "OK" ) ) {
+	// 		showErrorWindow = false;
+	// 	}
+	// 	ImGui::End();
+	// }
+
+	if (errorMsg != "") {
+		ImGui::Begin("Error", NULL, windowFlags);
+		ImGui::Text(errorMsg);
+		if( ImGui::Button( "ok" ) ) {
+			errorMsg = "";
+		}
+		ImGui::End();
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -704,7 +726,7 @@ bool A3::mouseButtonInputEvent (
 			}
 
 			if (m_interaction_mode == 1 && (button == GLFW_MOUSE_BUTTON_MIDDLE || button == GLFW_MOUSE_BUTTON_RIGHT)) {
-				m_command->execute(m_jointAngles);
+				m_command->save(m_jointAngles);
 			}
 		}
 	}
@@ -758,6 +780,36 @@ bool A3::keyInputEvent (
 		}
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		if (key == GLFW_KEY_I) {
+			resetPosition();
+		}
+		if (key == GLFW_KEY_O) {
+			resetOrientation();
+		}
+		if (key == GLFW_KEY_S) {
+			resetJoints();
+		}
+		if (key == GLFW_KEY_A) {
+			resetAll();
+		}
+		if (key == GLFW_KEY_C) {
+			renderArcball = !renderArcball;
+		}
+		if (key == GLFW_KEY_Z) {
+			zBuffer = !zBuffer;
+		}
+		if (key == GLFW_KEY_B) {
+			backfaceCulling = !backfaceCulling;
+		}
+		if (key == GLFW_KEY_F) {
+			frontfaceCulling = !frontfaceCulling;
+		}
+		if (key == GLFW_KEY_P) {
+			m_interaction_mode = 0;
+		}
+		if (key == GLFW_KEY_J) {
+			m_interaction_mode = 1;
 		}
 	}
 	// Fill in with event handling code...
@@ -1029,49 +1081,61 @@ void MoveCommand::init(std::vector<std::pair<double, double>>& jointAngles)
 	curJointAngle = jointAngleList.begin();
 }
 
-void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles)
+void MoveCommand::save(std::vector<std::pair<double, double>>& jointAngles)
 {
-	std::next(curJointAngle) = jointAngleList.end();
+	// Clear all items after the iterator
+    jointAngleList.erase(std::next(curJointAngle), jointAngleList.end());
 	jointAngleList.push_back(jointAngles);
 	curJointAngle++;
 }
 
-void MoveCommand::redo() {
-	// if (curJointAngle + 1 != jointAngleList.end()) {
-
-	// }
-
+bool MoveCommand::redo() {
+	bool result = false;
+	if (curJointAngle != std::prev(jointAngleList.end())) {
+		auto jointAngles = *curJointAngle;
+		auto newJointAngles = *(std::next(curJointAngle));
+		execute(newJointAngles, jointAngles);
+		result = true;
+		curJointAngle++;
+	}
+	return result;
 }
 
-void MoveCommand::undo() {
-	cout << "call undo" << endl;
+bool MoveCommand::undo() {
+	bool result = false;
 	if (curJointAngle != jointAngleList.begin()) {
-		glm::mat4 transX(1.0f);
-		glm::mat4 transY(1.0f);
-		auto& jointAngles = *curJointAngle;
-		auto& prevJointAngles = *(std::prev(curJointAngle));
-		cout << jointAngles.size() << endl;
-		cout << prevJointAngles.size() << endl;
-		for (size_t i = 0; i < jointAngles.size(); ++i) {
-			double x_angle = prevJointAngles[i].first - jointAngles[i].first;
-			double y_angle = prevJointAngles[i].second - jointAngles[i].second;
-			float rotatedRadiansX = glm::radians(x_angle);
-			float rotatedRadiansY = glm::radians(y_angle);
-			transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
-			cout << "before joint node";
-			jointNodes[i]->x_angle = prevJointAngles[i].first;
-			jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
-			cout << "after joint node";
-			transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
-			jointNodes[i]->y_angle = prevJointAngles[i].second;
-			jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
-		}
-	} else {
-		// pop up error
+		auto jointAngles = *curJointAngle;
+		auto newJointAngles = *(std::prev(curJointAngle));
+		execute(newJointAngles, jointAngles);
+		result = true;
+		curJointAngle--;
 	}
+	return result;
 }
 
 void MoveCommand::reset() {
+	auto jointAngles = *curJointAngle;
+	curJointAngle = jointAngleList.begin();
+	auto newJointAngles = *curJointAngle;
+	execute(newJointAngles, jointAngles);
+	jointAngleList.erase(std::next(curJointAngle), jointAngleList.end());
+}
+
+void MoveCommand::execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles) {
+	glm::mat4 transX(1.0f);
+	glm::mat4 transY(1.0f);
+	for (size_t i = 0; i < jointAngles.size(); ++i) {
+		double x_angle = newJointAngles[i].first - jointAngles[i].first;
+		double y_angle = newJointAngles[i].second - jointAngles[i].second;
+		float rotatedRadiansX = glm::radians(x_angle);
+		float rotatedRadiansY = glm::radians(y_angle);
+		transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
+		jointNodes[i]->x_angle = newJointAngles[i].first;
+		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
+		transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+		jointNodes[i]->y_angle = newJointAngles[i].second;
+		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
+	}
 }
 
 

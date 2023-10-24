@@ -15,6 +15,7 @@
 #include <list>
 #include <memory>
 #include <stack>
+#include <string>
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -25,22 +26,16 @@ struct LightSource {
 	glm::vec3 rgbIntensity;
 };
 
-class Command
-{
-public:
-  virtual ~Command() {}
-  virtual void execute(std::vector<std::pair<double, double>>& jointAngles) = 0;
-};
-
-class MoveCommand: public Command
+class MoveCommand
 {
 public:
   MoveCommand(std::vector<JointNode *>& jointNodes);
   virtual ~MoveCommand() = default;
   virtual void init(std::vector<std::pair<double, double>>& jointAngles);
-  virtual void execute(std::vector<std::pair<double, double>>& jointAngles);
-  virtual void redo();
-  virtual void undo();
+  virtual void save(std::vector<std::pair<double, double>>& jointAngles);
+  virtual void execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles);
+  virtual bool redo();
+  virtual bool undo();
   virtual void reset();
 
 private:
@@ -146,6 +141,7 @@ protected:
 	glm::vec2 m_mouse_GL_coordinate;
 	glm::vec2 m_prev_mouse_GL_coordinate;
 
+	char* errorMsg;
 	std::unique_ptr<MoveCommand> m_command;
 	std::map<int, SceneNode *> m_nodeMap;
 	std::vector<JointNode *> m_jointNodes;
