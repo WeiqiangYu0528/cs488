@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
 #include "SceneNode.hpp"
 
 class JointNode : public SceneNode {
@@ -20,6 +21,7 @@ public:
 	JointRange m_joint_x, m_joint_y;
 	double x_angle, y_angle;
 	unsigned int m_jointId;
+	glm::mat4 initTrans;
 
 	// The number of SceneNode instances.
 	static unsigned int jointInstanceCount;

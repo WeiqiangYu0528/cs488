@@ -118,6 +118,7 @@ void A3::initMoveCommand() {
 		SceneNode * node = pair.second;
 		if (node->m_nodeType == NodeType::JointNode) {
 			JointNode* jointNode = dynamic_cast<JointNode *>(node);
+			jointNode->initTrans = jointNode->get_transform();
 			m_jointNodes[jointNode->m_jointId] = jointNode;
 		}
 		// cout << pair.first << " " << pair.second->m_name << endl;
@@ -830,9 +831,10 @@ void A3::updateModelMatrix() {
 			float angle = 0.0f;
 			glm::vec3 axis(0.0f);
 			getAngleAndAxis(angle, axis);
-			axis = glm::normalize(axis);
-			transM = getRotationMatrix(angle, axis);
-			cout << angle << axis << endl;
+			if (axis != glm::vec3(0.0f)) {
+				axis = glm::normalize(axis);
+				transM = getRotationMatrix(angle, axis);
+			}
 			// transM = glm::transpose(transM);
 			// transM = vAxisRotMatrix(axis);
 			// transM = glm::transpose(transM);
@@ -941,7 +943,6 @@ void A3::getAngleAndAxis(float& angle, glm::vec3& axis) {
 	glm::vec3 cur = getTrackballVector(m_mouse_GL_coordinate);
 	angle = acos(std::min(1.0f, glm::dot(prev, cur)));
 	axis = glm::cross(prev, cur);
-	cout << prev << cur << angle << axis << endl;
 }
 
 glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
@@ -1122,26 +1123,40 @@ void MoveCommand::reset() {
 	jointAngleList.erase(std::next(curJointAngle), jointAngleList.end());
 }
 
-void MoveCommand::execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles) {
-	cout << "executed" << endl;
-	glm::mat4 transX(1.0f);
-	glm::mat4 transY(1.0f);
+void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles, std::vector<std::pair<double, double>>& oldjointAngles) {
+	glm::mat4 transM(1.0f);
 	for (size_t i = 0; i < jointAngles.size(); ++i) {
-		transX = glm::mat4(1.0f);
-		transY = glm::mat4(1.0f);
-		double x_angle = newJointAngles[i].first - jointAngles[i].first;
-		double y_angle = newJointAngles[i].second - jointAngles[i].second;
-		float rotatedRadiansX = glm::radians(x_angle);
-		float rotatedRadiansY = glm::radians(y_angle);
-		cout << x_angle << " " << y_angle << endl;
-		transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
-		jointNodes[i]->y_angle = newJointAngles[i].second;
-		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
-		transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
-		jointNodes[i]->x_angle = newJointAngles[i].first;
-		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
+		float rotatedRadiansX = glm::radians(jointAngles[i].first);
+		float rotatedRadiansY = glm::radians(jointAngles[i].second);
+		transM = glm::mat4(1.0f);
+		transM = glm::rotate(transM, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
+		transM = glm::rotate(transM, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+		jointNodes[i]->x_angle = jointAngles[i].first;
+		jointNodes[i]->y_angle = jointAngles[i].second;
+		jointNodes[i]->set_transform(jointNodes[i]->initTrans * transM);
 	}
 }
+
+// void MoveCommand::execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles) {
+// 	cout << "executed" << endl;
+// 	glm::mat4 transX(1.0f);
+// 	glm::mat4 transY(1.0f);
+// 	for (size_t i = 0; i < jointAngles.size(); ++i) {
+// 		transX = glm::mat4(1.0f);
+// 		transY = glm::mat4(1.0f);
+// 		double x_angle = newJointAngles[i].first - jointAngles[i].first;
+// 		double y_angle = newJointAngles[i].second - jointAngles[i].second;
+// 		float rotatedRadiansX = glm::radians(x_angle);
+// 		float rotatedRadiansY = glm::radians(y_angle);
+// 		cout << x_angle << " " << y_angle << endl;
+// 		transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
+// 		jointNodes[i]->y_angle = newJointAngles[i].second;
+// 		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
+// 		transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
+// 		jointNodes[i]->x_angle = newJointAngles[i].first;
+// 		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
+// 	}
+// }
 
 
 
