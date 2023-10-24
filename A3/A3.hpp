@@ -34,8 +34,8 @@ public:
   virtual void init(std::vector<std::pair<double, double>>& jointAngles);
   virtual void save(std::vector<std::pair<double, double>>& jointAngles);
   virtual void execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles);
-  virtual bool redo();
-  virtual bool undo();
+  virtual bool redo(std::string&);
+  virtual bool undo(std::string&);
   virtual void reset();
 
 private:
@@ -141,10 +141,10 @@ protected:
 	glm::vec2 m_mouse_GL_coordinate;
 	glm::vec2 m_prev_mouse_GL_coordinate;
 
-	char* errorMsg;
+	std::string errorMsg;
 	std::unique_ptr<MoveCommand> m_command;
 	std::map<int, SceneNode *> m_nodeMap;
 	std::vector<JointNode *> m_jointNodes;
 	std::vector<std::pair<double, double>> m_jointAngles;
-	// glm::mat4 vAxisRotMatrix(glm::vec3& axis);
+	glm::mat4 vAxisRotMatrix(glm::vec3& axis);
 };

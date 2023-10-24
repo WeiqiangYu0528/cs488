@@ -20,7 +20,7 @@ function createTorso()
 end
 
 function createShoulder()
-    shoulderJoint = gr.joint('shoulderJoint', {-90, 0, 90}, {-90, 0, 90})
+    shoulderJoint = gr.joint('shoulderJoint', {-10, 0, 10}, {-45, 0, 45})
     shoulderJoint:translate(0.0, 1.0, 0.0)
 
     shoulders = gr.mesh('sphere', 'my_shoulders')
