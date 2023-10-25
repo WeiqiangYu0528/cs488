@@ -10,17 +10,17 @@ white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 10)
 
 -- Create the top level root node named 'root'.
 rootNode = gr.node('rootNode')
-rootNode:translate(0.0, 0.0, -6.0)
+rootNode:translate(0.0, 0.0, -8.0)
 
-function createTorso()
+function drawTorso()
     torso = gr.mesh('sphere', 'my_torso')
     torso:scale(0.8, 1.0, 0.5)
     torso:set_material(white)
-    return torso
+    rootNode:add_child(torso)
 end
 
-function createShoulder()
-    shoulderJoint = gr.joint('shoulderJoint', {-10, 0, 10}, {-45, 0, 45})
+function drawShoulder()
+    shoulderJoint = gr.joint('shoulderJoint', {0, 0, 0}, {-30, 0, 30})
     shoulderJoint:translate(0.0, 1.0, 0.0)
 
     shoulders = gr.mesh('sphere', 'my_shoulders')
@@ -28,12 +28,12 @@ function createShoulder()
     shoulders:set_material(yellow)
 
     shoulderJoint:add_child(shoulders)
-    return shoulderJoint
+    rootNode:add_child(shoulderJoint)
 end
 
 
-function createHip()
-    hipJoint = gr.joint('hipJoint', {-90, 0, 90}, {-90, 0, 90})
+function drawHip()
+    hipJoint = gr.joint('hipJoint', {0, 0, 0}, {-30, 0, 30})
     hipJoint:translate(0.0, -1.0, -0.0)
 
     hips = gr.mesh('sphere', 'my_hips')
@@ -41,14 +41,14 @@ function createHip()
     hips:set_material(yellow)
 
     hipJoint:add_child(hips)
-    return hipJoint
+    rootNode:add_child(hipJoint)
 end
 
 function drawUpperArms()
-    leftUpperArmJoint = gr.joint('leftUpperArmJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftUpperArmJoint = gr.joint('leftUpperArmJoint', {-45, 0, 45}, {0, 0, 0})
     leftUpperArm = gr.mesh('sphere', 'my_left_upper_arm')
 
-    rightUpperArmJoint = gr.joint('rightUpperArmJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightUpperArmJoint = gr.joint('rightUpperArmJoint', {-45, 0, 45}, {0, 0, 0})
     rightUpperArm = gr.mesh('sphere', 'my_right_upper_arm')
 
     leftUpperArmJoint:translate(-0.9, 0.0, 0.0)
@@ -70,10 +70,10 @@ function drawUpperArms()
 end
 
 function drawForearm()
-    leftForearmJoint = gr.joint('leftForearmJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftForearmJoint = gr.joint('leftForearmJoint', {-45, 0, 45}, {0, 0, 0})
     leftForearm = gr.mesh('sphere', 'my_left_forearm')
 
-    rightForearmJoint = gr.joint('rightForearmJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightForearmJoint = gr.joint('rightForearmJoint', {-45, 0, 45}, {0, 0, 0})
     rightForearm = gr.mesh('sphere', 'my_right_forearm')
 
     leftForearmJoint:translate(0.0, -1.0, 0.0)
@@ -95,17 +95,19 @@ function drawForearm()
 end
 
 function drawHand(left)
-    leftHandJoint = gr.joint('leftHandJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftHandJoint = gr.joint('leftHandJoint', {-45, 0, 45}, {0, 0, 0})
     leftHand = gr.mesh('sphere', 'my_left_hand')
 
-    rightHandJoint = gr.joint('rightHandJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightHandJoint = gr.joint('rightHandJoint', {-45, 0, 45}, {0, 0, 0})
     rightHand = gr.mesh('sphere', 'my_right_hand')
 
     leftHandJoint:translate(0.0, -1.0, 0.0)
     rightHandJoint:translate(0.0, -1.0, 0.0)
 
-    leftHand:scale(0.1, 0.1, 0.1)
-    rightHand:scale(0.1, 0.1, 0.1)
+    leftHand:scale(0.1, 0.2, 0.1)
+    rightHand:scale(0.1, 0.2, 0.1)
+    leftHand:translate(0.0, -0.1, 0.0)
+    rightHand:translate(0.0, -0.1, 0.0)
     leftHand:set_material(green)
     rightHand:set_material(green)
 
@@ -117,10 +119,10 @@ function drawHand(left)
 end
 
 function drawThigh(left)
-    leftThighJoint = gr.joint('leftThighJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftThighJoint = gr.joint('leftThighJoint', {-45, 0, 45}, {0, 0, 0})
     leftThigh = gr.mesh('sphere', 'my_left_thigh')
 
-    rightThighJoint = gr.joint('rightThighJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightThighJoint = gr.joint('rightThighJoint', {-45, 0, 45}, {0, 0, 0})
     rightThigh = gr.mesh('sphere', 'my_right_thigh')
 
     leftThighJoint:translate(-0.7, 0.0, 0.0)
@@ -142,10 +144,10 @@ function drawThigh(left)
 end
 
 function drawCalf(left)
-    leftCalfJoint = gr.joint('leftCalfJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftCalfJoint = gr.joint('leftCalfJoint', {-45, 0, 45}, {0, 0, 0})
     leftCalf = gr.mesh('sphere', 'my_left_calf')
 
-    rightCalfJoint = gr.joint('rightCalfJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightCalfJoint = gr.joint('rightCalfJoint', {-45, 0, 45}, {0, 0, 0})
     rightCalf = gr.mesh('sphere', 'my_right_calf')
 
     leftCalfJoint:translate(0.0, -1.0, 0.0)
@@ -167,10 +169,10 @@ function drawCalf(left)
 end
 
 function drawFoot(left)
-    leftFootJoint = gr.joint('leftFootJoint', {-90, 0, 90}, {-90, 0, 90})
+    leftFootJoint = gr.joint('leftFootJoint', {-45, 0, 45}, {0, 0, 0})
     leftFoot = gr.mesh('sphere', 'my_left_foot')
 
-    rightFootJoint = gr.joint('rightFootJoint', {-90, 0, 90}, {-90, 0, 90})
+    rightFootJoint = gr.joint('rightFootJoint', {-45, 0, 45}, {0, 0, 0})
     rightFoot = gr.mesh('sphere', 'my_right_foot')
 
     leftFootJoint:translate(0.0, -0.8, 0.0)
@@ -178,6 +180,8 @@ function drawFoot(left)
 
     leftFoot:scale(0.12, 0.15, 0.1)
     rightFoot:scale(0.12, 0.15, 0.1)
+    leftFoot:translate(0.0, -0.1, 0.0)
+    rightFoot:translate(0.0, -0.1, 0.0)
     leftFoot:set_material(green)
     rightFoot:set_material(green)
 
@@ -189,7 +193,7 @@ function drawFoot(left)
 end
 
 function drawNeck()
-    neckJoint = gr.joint('neckJoint', {-90, 0, 90}, {-90, 0, 90})
+    neckJoint = gr.joint('neckJoint', {-10, 0, 30}, {0, 0, 0})
     neckJoint:translate(0.0, 1.4, 0.0)
 
     neck = gr.mesh('sphere', 'my_neck')
@@ -201,7 +205,7 @@ function drawNeck()
 end
 
 function drawHead()
-    headJoint = gr.joint('headJoint', {-90, 0, 90}, {-90, 0, 90})
+    headJoint = gr.joint('headJoint', {0, 0, 0}, {-90, 0, 90})
     headJoint:translate(0.0, 0.58, 0.0)
 
     head= gr.mesh('sphere', 'my_head')
@@ -229,9 +233,9 @@ function drawEyes()
     headJoint:add_child(rightEye)
 end
 
-rootNode:add_child(createTorso())
-rootNode:add_child(createShoulder())
-rootNode:add_child(createHip())
+drawTorso()
+drawShoulder()
+drawHip()
 drawUpperArms()
 drawForearm()
 drawHand()

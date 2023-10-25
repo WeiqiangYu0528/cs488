@@ -31,11 +31,11 @@ class MoveCommand
 public:
   MoveCommand(std::vector<JointNode *>& jointNodes);
   virtual ~MoveCommand() = default;
-  virtual void init(std::vector<std::pair<double, double>>& jointAngles);
-  virtual void save(std::vector<std::pair<double, double>>& jointAngles);
+  virtual void init(const std::vector<std::pair<double, double>>& jointAngles);
+  virtual void save(const std::vector<std::pair<double, double>>& jointAngles);
   virtual void execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles);
-  virtual bool redo(std::string&);
-  virtual bool undo(std::string&);
+  virtual bool redo(std::vector<std::pair<double, double>>& curJointAngles, std::string&);
+  virtual bool undo(std::vector<std::pair<double, double>>& curJointAngles, std::string&);
   virtual void reset();
 
 private:

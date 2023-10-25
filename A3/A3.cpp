@@ -379,6 +379,7 @@ void A3::appLogic()
 	}
 
 	uploadCommonSceneUniforms();
+	m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
 }
 
 //----------------------------------------------------------------------------------------
@@ -424,10 +425,10 @@ void A3::guiLogic()
 		}
 		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Undo", "U")) {
-				m_command->undo(errorMsg);
+				m_command->undo(m_jointAngles, errorMsg);
 			}
 			if (ImGui::MenuItem("Redo", "R")) {
-				m_command->redo(errorMsg);
+				m_command->redo(m_jointAngles, errorMsg);
 			}
 			ImGui::EndMenu();
 		}
@@ -464,7 +465,7 @@ void A3::guiLogic()
 	ImGui::End();
 	if (errorMsg != "") {
 		ImGui::Begin("Error", NULL, windowFlags);
-		ImGui::Text(errorMsg.c_str());
+		ImGui::Text("%s", errorMsg.c_str());
 		if( ImGui::Button( "ok" ) ) {
 			errorMsg = "";
 		}
@@ -563,7 +564,7 @@ void A3::renderSceneGraph(const SceneNode * root) {
 	// could put a set of mutually recursive functions in this class, which
 	// walk down the tree from nodes of different types.
 
-	m_model = root->get_transform() * m_translation * m_rotation * glm::inverse(root->get_transform()); 
+	m_model = root->get_transform() * m_translation * m_rotation;
 	traverseSceneGraph(root);
 
 	glBindVertexArray(0);
@@ -572,7 +573,9 @@ void A3::renderSceneGraph(const SceneNode * root) {
 
 void A3::traverseSceneGraph(const SceneNode *node) {
 	m_model_stack.push(node->get_transform());
-	m_model = m_model * m_model_stack.top();
+	if (node->m_nodeId != 0) {
+		m_model = m_model * m_model_stack.top();
+	}
 
 	for (SceneNode * childNode : node->children) {
 		traverseSceneGraph(childNode);
@@ -668,7 +671,6 @@ bool A3::mouseButtonInputEvent (
 
 	// Fill in with event handling code...
 	if (actions == GLFW_PRESS) {
-		m_prev_mouse_GL_coordinate = m_mouse_GL_coordinate;
 		if (!ImGui::IsMouseHoveringAnyWindow()) {
 			m_mouse_button_active = true;
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -690,7 +692,7 @@ bool A3::mouseButtonInputEvent (
 				y = m_framebufferHeight - y - 1;
 				glReadPixels(x, y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
 
-				if ( index > 2 ) {
+				if ( index > 2 && m_nodeMap[index - 2]->m_nodeType == NodeType::JointNode ) {
 					m_nodeMap[index - 1]->isSelected = !m_nodeMap[index - 1]->isSelected;
 					m_nodeMap[index - 2]->isSelected = !m_nodeMap[index - 2]->isSelected;
 				}
@@ -712,10 +714,10 @@ bool A3::mouseButtonInputEvent (
 			}
 
 			if (m_interaction_mode == 1 && (button == GLFW_MOUSE_BUTTON_MIDDLE || button == GLFW_MOUSE_BUTTON_RIGHT)) {
-				cout << "release" << endl;
-				for (auto& pair : m_jointAngles) {
-					cout << pair.first << " " << pair.second << endl;
-				}
+				// cout << "release" << endl;
+				// for (auto& pair : m_jointAngles) {
+				// 	cout << pair.first << " " << pair.second << endl;
+				// }
 				m_command->save(m_jointAngles);
 			}
 		}
@@ -802,21 +804,21 @@ bool A3::keyInputEvent (
 			m_interaction_mode = 1;
 		}
 		if (key == GLFW_KEY_R) {
-			m_command->redo(errorMsg);
+			m_command->redo(m_jointAngles, errorMsg);
 		}
 		if (key == GLFW_KEY_U) {
-			m_command->undo(errorMsg);
+			m_command->undo(m_jointAngles, errorMsg);
 		}
 		}
 	// Fill in with event handling code...
 
-	return eventHandled;
+	return true;
 }
 
 void A3::updateModelMatrix() {
 	glm::mat4 transM(1.0f);
-	float offsetX = m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x;
-	float offsetY = m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y;
+	float offsetX = (m_mouse_GL_coordinate.x - m_prev_mouse_GL_coordinate.x) * 10;
+	float offsetY = (m_mouse_GL_coordinate.y - m_prev_mouse_GL_coordinate.y) * 10;
 	if (m_left_mouse_button_active) {	
 		transM[3][0] = offsetX;
 		transM[3][1] = offsetY;
@@ -839,8 +841,8 @@ void A3::updateModelMatrix() {
 			// transM = vAxisRotMatrix(axis);
 			// transM = glm::transpose(transM);
 		} else {
-			float cosine = cosf(offsetX * 10);
-			float sine = sinf(offsetX * 10);
+			float cosine = cosf(offsetX);
+			float sine = sinf(offsetX);
 			transM[0][0] = cosine;
 			transM[0][1] = sine;
 			transM[1][0] = -sine;
@@ -862,12 +864,15 @@ void A3::updateSceneNodeTransformations() {
 	double rotatedAngleY = glm::degrees(rotatedRadiansY);
 	if (m_middle_mouse_button_active) {
 		for (JointNode* jointNode: m_jointNodes) {
+			transX = glm::mat4(1.0f);
+			transY = glm::mat4(1.0f);
 			if (jointNode->isSelected) {
 				double x_angle = jointNode->x_angle + rotatedAngleX;
 				double y_angle = jointNode->y_angle + rotatedAngleY;
+				// cout << x_angle << " " << y_angle << endl;
 				if (jointNode->m_joint_x.min <= x_angle && 
 					jointNode->m_joint_x.max >= x_angle) {
-					cout << x_angle;
+					// cout << x_angle;
 					m_jointAngles[jointNode->m_jointId].first = x_angle;
 					transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
 					jointNode->x_angle = x_angle;
@@ -875,7 +880,7 @@ void A3::updateSceneNodeTransformations() {
 				}
 				if (jointNode->m_joint_y.min <= y_angle && 
 					jointNode->m_joint_y.max >= y_angle) {
-					cout << y_angle << endl;
+					// cout << y_angle << endl;
 					m_jointAngles[jointNode->m_jointId].second = y_angle;
 					transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
 					jointNode->y_angle = y_angle;
@@ -1008,63 +1013,63 @@ glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
  *                       0,1, and 2).
  *
  *******************************************************/
-glm::mat4 A3::vAxisRotMatrix(glm::vec3& axis) {
-    float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
-	float fVecX = axis.x; 
-	float fVecY = axis.y;
-	float fVecZ = axis.z;
+// glm::mat4 A3::vAxisRotMatrix(glm::vec3& axis) {
+//     float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
+// 	float fVecX = axis.x; 
+// 	float fVecY = axis.y;
+// 	float fVecZ = axis.z;
 
-	glm::mat4 mNewMat(1.0f);
+// 	glm::mat4 mNewMat(1.0f);
 
-    /* Find the length of the vector which is the angle of rotation
-     * (in radians)
-     */
-    fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
+//     /* Find the length of the vector which is the angle of rotation
+//      * (in radians)
+//      */
+//     fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
 
-    /* If the vector has zero length - return the identity matrix */
-    if (fRadians > -0.000001 && fRadians < 0.000001) {
-        return mNewMat;
-    }
+//     /* If the vector has zero length - return the identity matrix */
+//     if (fRadians > -0.000001 && fRadians < 0.000001) {
+//         return mNewMat;
+//     }
 
-    /* Normalize the rotation vector now in preparation for making
-     * rotation matrix. 
-     */
-    // fInvLength = 1 / fRadians;
-    // fNewVecX   = fVecX * fInvLength;
-    // fNewVecY   = fVecY * fInvLength;
-    // fNewVecZ   = fVecZ * fInvLength;
-	axis = glm::normalize(axis);
-	fNewVecX = axis.x;
-    fNewVecY = axis.y;
-    fNewVecZ = axis.z;
+//     /* Normalize the rotation vector now in preparation for making
+//      * rotation matrix. 
+//      */
+//     // fInvLength = 1 / fRadians;
+//     // fNewVecX   = fVecX * fInvLength;
+//     // fNewVecY   = fVecY * fInvLength;
+//     // fNewVecZ   = fVecZ * fInvLength;
+// 	axis = glm::normalize(axis);
+// 	fNewVecX = axis.x;
+//     fNewVecY = axis.y;
+//     fNewVecZ = axis.z;
 
-    /* Create the arbitrary axis rotation matrix */
-    double dSinAlpha = sin(fRadians);
-    double dCosAlpha = cos(fRadians);
-    double dT = 1 - dCosAlpha;
+//     /* Create the arbitrary axis rotation matrix */
+//     double dSinAlpha = sin(fRadians);
+//     double dCosAlpha = cos(fRadians);
+//     double dT = 1 - dCosAlpha;
 
-    mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
-    mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
-    mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
-    mNewMat[0][3] = 0;
+//     mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
+//     mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
+//     mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
+//     mNewMat[0][3] = 0;
 
-    mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
-    mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
-    mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
-    mNewMat[1][3] = 0;
+//     mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
+//     mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
+//     mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
+//     mNewMat[1][3] = 0;
 
-    mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
-    mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
-    mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
-    mNewMat[2][3] = 0;
+//     mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
+//     mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
+//     mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
+//     mNewMat[2][3] = 0;
 
-    mNewMat[3][0] = 0;
-    mNewMat[3][1] = 0;
-    mNewMat[3][2] = 0;
-    mNewMat[3][3] = 1;
+//     mNewMat[3][0] = 0;
+//     mNewMat[3][1] = 0;
+//     mNewMat[3][2] = 0;
+//     mNewMat[3][3] = 1;
 
-	return mNewMat;
-}
+// 	return mNewMat;
+// }
 
 
 MoveCommand::MoveCommand(std::vector<JointNode *>& jointNodes)
@@ -1073,21 +1078,24 @@ MoveCommand::MoveCommand(std::vector<JointNode *>& jointNodes)
 	// empty
 }
 
-void MoveCommand::init(std::vector<std::pair<double, double>>& jointAngles)  
+void MoveCommand::init(const std::vector<std::pair<double, double>>& jointAngles)  
 {
 	jointAngleList.push_back(jointAngles);
 	curJointAngle = jointAngleList.begin();
 }
 
-void MoveCommand::save(std::vector<std::pair<double, double>>& jointAngles)
+void MoveCommand::save(const std::vector<std::pair<double, double>>& jointAngles)
 {
 	// Clear all items after the iterator
     jointAngleList.erase(std::next(curJointAngle), jointAngleList.end());
+	for (auto& pair: jointAngles) {
+		cout << pair.first << " " << pair.second << endl;
+	}
 	jointAngleList.push_back(jointAngles);
 	curJointAngle++;
 }
 
-bool MoveCommand::redo(std::string& errorMsg) {
+bool MoveCommand::redo(std::vector<std::pair<double, double>>& curJointAngles, std::string& errorMsg) {
 	bool result = false;
 	if (curJointAngle != std::prev(jointAngleList.end())) {
 		auto jointAngles = *curJointAngle;
@@ -1095,13 +1103,14 @@ bool MoveCommand::redo(std::string& errorMsg) {
 		execute(newJointAngles, jointAngles);
 		result = true;
 		curJointAngle++;
+		curJointAngles = newJointAngles;
 	} else {
 		errorMsg = "Cannot redo";
 	}
 	return result;
 }
 
-bool MoveCommand::undo(std::string& errorMsg) {
+bool MoveCommand::undo(std::vector<std::pair<double, double>>& curJointAngles, std::string& errorMsg) {
 	bool result = false;
 	if (curJointAngle != jointAngleList.begin()) {
 		auto jointAngles = *curJointAngle;
@@ -1109,6 +1118,7 @@ bool MoveCommand::undo(std::string& errorMsg) {
 		execute(newJointAngles, jointAngles);
 		result = true;
 		curJointAngle--;
+		curJointAngles = newJointAngles;
 	} else {
 		errorMsg = "Cannot undo";
 	}
@@ -1126,6 +1136,7 @@ void MoveCommand::reset() {
 void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles, std::vector<std::pair<double, double>>& oldjointAngles) {
 	glm::mat4 transM(1.0f);
 	for (size_t i = 0; i < jointAngles.size(); ++i) {
+		cout << jointAngles[i].first << " " << jointAngles[i].second << endl;
 		float rotatedRadiansX = glm::radians(jointAngles[i].first);
 		float rotatedRadiansY = glm::radians(jointAngles[i].second);
 		transM = glm::mat4(1.0f);
