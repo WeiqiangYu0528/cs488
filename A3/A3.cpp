@@ -402,23 +402,18 @@ void A3::guiLogic()
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("Application")) {
 			if (ImGui::MenuItem("Reset Position", "I")) {
-				// Handle the "Open" action
 				resetPosition();
 			}
 			if (ImGui::MenuItem("Reset Orientation", "O")) {
-				// Handle the "Save" action
 				resetOrientation();
 			}
 			if (ImGui::MenuItem("Reset Joints", "S")) {
-				// Handle the "Save" action
 				resetJoints();
 			}
 			if (ImGui::MenuItem("Reset All", "A")) {
-				// Handle the "Save" action
 				resetAll();
 			}
 			if (ImGui::MenuItem("Quit", "Q")) {
-				// Handle the "Save" action
 				glfwSetWindowShouldClose(m_window, GL_TRUE);
 			}
 			ImGui::EndMenu();
@@ -833,12 +828,11 @@ void A3::updateModelMatrix() {
 			float angle = 0.0f;
 			glm::vec3 axis(0.0f);
 			getAngleAndAxis(angle, axis);
-			if (axis != glm::vec3(0.0f)) {
-				axis = glm::normalize(axis);
-				transM = getRotationMatrix(angle, axis);
-			}
-			// transM = glm::transpose(transM);
-			// transM = vAxisRotMatrix(axis);
+			// if (axis != glm::vec3(0.0f)) {
+			// 	axis = glm::normalize(axis);
+			// 	transM = getRotationMatrix(angle, axis);
+			// }
+			transM = vAxisRotMatrix(axis);
 			// transM = glm::transpose(transM);
 		} else {
 			float cosine = cosf(offsetX);
@@ -1021,63 +1015,63 @@ glm::mat4 A3::getRotationMatrix(float& angle, glm::vec3& axis) {
  *                       0,1, and 2).
  *
  *******************************************************/
-// glm::mat4 A3::vAxisRotMatrix(glm::vec3& axis) {
-//     float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
-// 	float fVecX = axis.x; 
-// 	float fVecY = axis.y;
-// 	float fVecZ = axis.z;
+glm::mat4 A3::vAxisRotMatrix(glm::vec3& axis) {
+    float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
+	float fVecX = axis.x; 
+	float fVecY = axis.y;
+	float fVecZ = axis.z;
 
-// 	glm::mat4 mNewMat(1.0f);
+	glm::mat4 mNewMat(1.0f);
 
-//     /* Find the length of the vector which is the angle of rotation
-//      * (in radians)
-//      */
-//     fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
+    /* Find the length of the vector which is the angle of rotation
+     * (in radians)
+     */
+    fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
 
-//     /* If the vector has zero length - return the identity matrix */
-//     if (fRadians > -0.000001 && fRadians < 0.000001) {
-//         return mNewMat;
-//     }
+    /* If the vector has zero length - return the identity matrix */
+    if (fRadians > -0.000001 && fRadians < 0.000001) {
+        return mNewMat;
+    }
 
-//     /* Normalize the rotation vector now in preparation for making
-//      * rotation matrix. 
-//      */
-//     // fInvLength = 1 / fRadians;
-//     // fNewVecX   = fVecX * fInvLength;
-//     // fNewVecY   = fVecY * fInvLength;
-//     // fNewVecZ   = fVecZ * fInvLength;
-// 	axis = glm::normalize(axis);
-// 	fNewVecX = axis.x;
-//     fNewVecY = axis.y;
-//     fNewVecZ = axis.z;
+    /* Normalize the rotation vector now in preparation for making
+     * rotation matrix. 
+     */
+    // fInvLength = 1 / fRadians;
+    // fNewVecX   = fVecX * fInvLength;
+    // fNewVecY   = fVecY * fInvLength;
+    // fNewVecZ   = fVecZ * fInvLength;
+	axis = glm::normalize(axis);
+	fNewVecX = axis.x;
+    fNewVecY = axis.y;
+    fNewVecZ = axis.z;
 
-//     /* Create the arbitrary axis rotation matrix */
-//     double dSinAlpha = sin(fRadians);
-//     double dCosAlpha = cos(fRadians);
-//     double dT = 1 - dCosAlpha;
+    /* Create the arbitrary axis rotation matrix */
+    double dSinAlpha = sin(fRadians);
+    double dCosAlpha = cos(fRadians);
+    double dT = 1 - dCosAlpha;
 
-//     mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
-//     mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
-//     mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
-//     mNewMat[0][3] = 0;
+    mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
+    mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
+    mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
+    mNewMat[0][3] = 0;
 
-//     mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
-//     mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
-//     mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
-//     mNewMat[1][3] = 0;
+    mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
+    mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
+    mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
+    mNewMat[1][3] = 0;
 
-//     mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
-//     mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
-//     mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
-//     mNewMat[2][3] = 0;
+    mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
+    mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
+    mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
+    mNewMat[2][3] = 0;
 
-//     mNewMat[3][0] = 0;
-//     mNewMat[3][1] = 0;
-//     mNewMat[3][2] = 0;
-//     mNewMat[3][3] = 1;
+    mNewMat[3][0] = 0;
+    mNewMat[3][1] = 0;
+    mNewMat[3][2] = 0;
+    mNewMat[3][3] = 1;
 
-// 	return mNewMat;
-// }
+	return mNewMat;
+}
 
 
 MoveCommand::MoveCommand(std::vector<JointNode *>& jointNodes)
@@ -1151,27 +1145,3 @@ void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles, s
 		jointNodes[i]->set_transform(jointNodes[i]->initTrans * transM);
 	}
 }
-
-// void MoveCommand::execute(std::vector<std::pair<double, double>>& newJointAngles, std::vector<std::pair<double, double>>& jointAngles) {
-// 	cout << "executed" << endl;
-// 	glm::mat4 transX(1.0f);
-// 	glm::mat4 transY(1.0f);
-// 	for (size_t i = 0; i < jointAngles.size(); ++i) {
-// 		transX = glm::mat4(1.0f);
-// 		transY = glm::mat4(1.0f);
-// 		double x_angle = newJointAngles[i].first - jointAngles[i].first;
-// 		double y_angle = newJointAngles[i].second - jointAngles[i].second;
-// 		float rotatedRadiansX = glm::radians(x_angle);
-// 		float rotatedRadiansY = glm::radians(y_angle);
-// 		cout << x_angle << " " << y_angle << endl;
-// 		transY = glm::rotate(transY, rotatedRadiansY, glm::vec3(0.0f, 1.0f, 0.0f));
-// 		jointNodes[i]->y_angle = newJointAngles[i].second;
-// 		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transY);
-// 		transX = glm::rotate(transX, rotatedRadiansX, glm::vec3(1.0f, 0.0f, 0.0f));
-// 		jointNodes[i]->x_angle = newJointAngles[i].first;
-// 		jointNodes[i]->set_transform(jointNodes[i]->get_transform() * transX);
-// 	}
-// }
-
-
-
