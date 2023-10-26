@@ -34,19 +34,19 @@ This manual provides additional details and features beyond the assignment speci
 
 In cases where specific instructions are lacking, I have made the following assumptions:
 
-- **Deselecting Joints on 'Reset All':** When the 'Reset All' function is initiated, all joints are automatically deselected. The interaction mode is also reset to its default position, and Z-buffer, backface culling, and frontface culling settings are reset as well.
+- **Additional features on 'Reset All':** When "reset all" is called, it automatically deselects all joints, resets the interaction mode to Position/Orientation mode, and reverts the Z-buffer, backface culling, and frontface culling settings to their default configurations.
 
-- **Undo and Redo Operations:** We assume that undo and redo operations will not alter the selection status of joints. They will retain their selection or deselection based on the user's interactions.
+- **Undo and Redo Operations:** I assume that undo and redo operations will not alter the selection status of joints. They will retain their selection or deselection based on the user's interactions.
 
 ## Changes to Data Structures
 
 I have made the following adjustments to the data structures:
 
-- **JointNode:** A new 'JointId' attribute has been introduced for unique joint identification. Additionally, 'X' and 'Y' angles, as well as the initial transformation, have been included to provide comprehensive support for joint-related operations.
+- A new 'JointId' attribute has been introduced for unique joint identification. Additionally, 'X' and 'Y' angles, as well as the initial transformation, have been included to provide comprehensive support for joint-related operations.
 
-- **SceneNode:** The 'SceneNode' class now features a 'traverse' function, which efficiently traverses the scene graph. This enhancement simplifies processes that involve visiting all nodes within the structure.
+- The 'SceneNode' class now features a 'traverse' function, which efficiently traverses the scene graph. This enhancement simplifies processes that involve visiting all nodes within the structure.
 
-- **A3:** I introduces the 'MoveCommand' class, enabling the implementation of undo and redo functions. This addition significantly enhances the application's usability, allowing users to backtrack and make changes as needed.
+- I have introduced the 'MoveCommand' class, which leverages the Command Pattern to seamlessly integrate undo and redo functionalities. 
 
 ## hierarchical model
 ![Alt text](hierarchical_model.png)
