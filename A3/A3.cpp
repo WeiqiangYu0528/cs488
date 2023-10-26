@@ -922,6 +922,14 @@ void A3::resetAll() {
 	resetPosition();
 	resetOrientation();
 	resetJoints();
+	for (auto& node: m_nodeMap) {
+		node.second->isSelected = false;
+	}
+	m_interaction_mode = 0;
+	zBuffer = true;
+	frontfaceCulling = false;
+	backfaceCulling = false;
+	renderArcball = false;
 }
 
 bool A3::isMouseHoverOverArcCircle() {
@@ -1088,9 +1096,6 @@ void MoveCommand::save(const std::vector<std::pair<double, double>>& jointAngles
 {
 	// Clear all items after the iterator
     jointAngleList.erase(std::next(curJointAngle), jointAngleList.end());
-	for (auto& pair: jointAngles) {
-		cout << pair.first << " " << pair.second << endl;
-	}
 	jointAngleList.push_back(jointAngles);
 	curJointAngle++;
 }
@@ -1136,7 +1141,6 @@ void MoveCommand::reset() {
 void MoveCommand::execute(std::vector<std::pair<double, double>>& jointAngles, std::vector<std::pair<double, double>>& oldjointAngles) {
 	glm::mat4 transM(1.0f);
 	for (size_t i = 0; i < jointAngles.size(); ++i) {
-		cout << jointAngles[i].first << " " << jointAngles[i].second << endl;
 		float rotatedRadiansX = glm::radians(jointAngles[i].first);
 		float rotatedRadiansY = glm::radians(jointAngles[i].second);
 		transM = glm::mat4(1.0f);

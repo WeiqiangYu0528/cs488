@@ -1,12 +1,15 @@
 
-red = gr.material({1.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
+red = gr.material({0.94, 0.14, 0.235}, {0.1, 0.1, 0.1}, 10)
 darkRed = gr.material({0.1, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-blue = gr.material({0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, 10)
-green = gr.material({0.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 10)
+blue = gr.material({0.016, 0.424, 0.549}, {0.1, 0.1, 0.1}, 10)
+green = gr.material({0.584, 0.969, 0.878}, {0.1, 0.1, 0.1}, 10)
 white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 10)
-yellow = gr.material({1.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 10)
+yellow = gr.material({1.0, 0.835, 0.0}, {0.1, 0.1, 0.1}, 10)
 black = gr.material({0.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
 white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 10)
+orange = gr.material({1.0, 0.514, 0.008}, {0.1, 0.1, 0.1}, 10)
+purple = gr.material({0.46, 0.47, 0.93}, {0.1, 0.1, 0.1}, 10)
+coral = gr.material({0.95, 0.36, 0.33}, {0.1, 0.1, 0.1}, 10)
 
 -- Create the top level root node named 'root'.
 rootNode = gr.node('rootNode')
@@ -56,8 +59,8 @@ function drawUpperArms()
     
     leftUpperArm:translate(0.0, -1.0, 0.0)
     rightUpperArm:translate(0.0, -1.0, 0.0)
-    leftUpperArm:set_material(blue)
-    rightUpperArm:set_material(blue)
+    leftUpperArm:set_material(orange)
+    rightUpperArm:set_material(orange)
 
     leftUpperArm:scale(0.1, 0.5, 0.1)
     rightUpperArm:scale(0.1, 0.5, 0.1)
@@ -81,8 +84,8 @@ function drawForearm()
 
     leftForearm:translate(0.0, -1.0, 0.0)
     rightForearm:translate(0.0, -1.0, 0.0)
-    leftForearm:set_material(red)
-    rightForearm:set_material(red)
+    leftForearm:set_material(coral)
+    rightForearm:set_material(coral)
 
     leftForearm:scale(0.06, 0.5, 0.03)
     rightForearm:scale(0.06, 0.5, 0.03)
@@ -130,8 +133,8 @@ function drawThigh(left)
 
     leftThigh:scale(0.1, 0.5, 0.1)
     rightThigh:scale(0.1, 0.5, 0.1)
-    leftThigh:set_material(blue)
-    rightThigh:set_material(blue)
+    leftThigh:set_material(purple)
+    rightThigh:set_material(purple)
 
     leftThigh:translate(0.0, -0.5, 0.0)
     rightThigh:translate(0.0, -0.5, 0.0)
@@ -158,8 +161,8 @@ function drawCalf(left)
 
     leftCalf:translate(0.0, -0.4, 0.0)
     rightCalf:translate(0.0, -0.4, 0.0)
-    leftCalf:set_material(red)
-    rightCalf:set_material(red)
+    leftCalf:set_material(blue)
+    rightCalf:set_material(blue)
 
     leftThighJoint:add_child(leftCalfJoint)
     rightThighJoint:add_child(rightCalfJoint)
