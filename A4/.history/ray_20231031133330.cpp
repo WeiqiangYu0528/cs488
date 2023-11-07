@@ -1,4 +1,0 @@
-#include "ray.hpp"
-
-R
-
