@@ -18,8 +18,7 @@ Mesh::Mesh( const std::string& fname )
 	double vx, vy, vz;
 	size_t s1, s2, s3;
 
-	const char* filename = ("Assets/" + fname).c_str();
-
+	std::string filename = "Assets/" + fname;
 	std::ifstream ifs( filename );
 	while( ifs >> code ) {
 		if( code == "v" ) {
@@ -87,7 +86,9 @@ std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
 bool Mesh::intersect(Ray& ray, IntersectionData& data) {
 	bool intersected = false;
 	// std::cout << m_vertices.size() << " " << m_faces.size() << std::endl;
-	// intersected = m_bounding_box->intersect(ray, data);
+	#ifdef RENDER_BOUNDING_VOLUMES
+	intersected = m_bounding_box->intersect(ray, data);
+	#else
 	IntersectionData temp_data;
 	if (m_bounding_box->intersect(ray, temp_data)) {
 		for (Triangle& triangle : m_faces) {
@@ -96,6 +97,7 @@ bool Mesh::intersect(Ray& ray, IntersectionData& data) {
 			}
 		}
 	}
+	#endif
 	// std::cout << data.t << " " << intersected << std::endl;
 	return intersected;
 }

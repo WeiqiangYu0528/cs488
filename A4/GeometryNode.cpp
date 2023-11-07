@@ -38,9 +38,16 @@ bool GeometryNode::intersect(Ray& ray, IntersectionData& data) {
 		data.material = m_material;
 	}
 
+	if (intersected && ray.type == RayType::Shadow) {
+		return true;
+	}
+
 	for (SceneNode * child : children) {
 		if (child->intersect(ray, data)) {
 			intersected = true;
+		}
+		if (intersected && ray.type == RayType::Shadow) {
+			return true;
 		}
 	}
 

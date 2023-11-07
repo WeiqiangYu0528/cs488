@@ -1,7 +1,7 @@
 #include "ray.hpp"
 
-Ray::Ray(const glm::vec3& origin, const glm::vec3& direction, const double t_lower_bound) :
-    origin(origin), direction(direction), t_lower_bound(t_lower_bound) {
+Ray::Ray(const glm::vec3& origin, const glm::vec3& direction, const double t_lower_bound, RayType type) :
+    origin(origin), direction(direction), t_lower_bound(t_lower_bound), type(type) {
     // empty
 }
 

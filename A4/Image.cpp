@@ -133,17 +133,14 @@ bool Image::loadPng(const std::string & filename) {
   unsigned error = lodepng::decode(image, width, height, filename, LCT_RGB);
 
   m_width = width;
-  m_height  = height;
+  m_height = height;
 
-  std::cout << image.size() << std::endl;
   size_t numElements = m_width * m_height * m_colorComponents;
 	m_data = new double[numElements];
 	memset(m_data, 0, numElements*sizeof(double));
   for (size_t i = 0; i < numElements; ++i) {
     m_data[i] = (double)image[i] / 255.0;
   }
-
-  std::cout << "width: " << width << std::endl;
 
   //if there's an error, display it
   if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;

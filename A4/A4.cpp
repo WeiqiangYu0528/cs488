@@ -60,6 +60,7 @@ void A4_Render(
 
 	for (uint y = 0; y < h; ++y) {
 		for (uint x = 0; x < w; ++x) {
+			std::cout << "Current progress: " << 100 * (y * w + x) / (w * h) << "%\r" << std::flush;
 			glm::vec3 color(0.0f);
 			for (uint i = 0; i < numSamples; ++i) {
 				for (uint j = 0; j < numSamples; ++j) {
@@ -69,9 +70,10 @@ void A4_Render(
 					float sample_y = y + (j + yOffset) / numSamples;
 					// std::cout << xOffset << " " << yOffset << std::endl;
 					glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, sample_x, sample_y);
+					// glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, x, y);
 					// glm::vec3 direction;
 					// getDirection(eye, view, up, fovy, w, h, x, h-y, direction);
-					Ray ray(eye, direction, 0.0);
+					Ray ray(eye, direction, 0.0, RayType::Primary);
 					IntersectionData data;
 					if (root->intersect(ray, data)) {
 						color += getColor(root, data, eye, ambient, lights);
@@ -87,6 +89,7 @@ void A4_Render(
 			image(x, y, 1) = (double)color.y;
 			// Blue: 
 			image(x, y, 2) = (double)color.z;
+			std::cout << "\b";
 		}
 	}
 }
@@ -149,17 +152,15 @@ glm::vec3 getColor(SceneNode * root, IntersectionData& data, const glm::vec3 & e
 	glm::vec3 viewDir = glm::normalize(eye - data.position);
 	for (Light* light: lights) {
 		glm::vec3 lightDir = glm::normalize(light->position - data.position);
-		Ray shadowRay(data.position, light->position - data.position, EPSILON);
+		Ray shadowRay(data.position, light->position - data.position, EPSILON, RayType::Shadow);
 		IntersectionData shadowData;
 		if (root->intersect(shadowRay, shadowData)) {
 			continue;
 		}
 		glm::vec3 reflection = glm::normalize(-lightDir + 2 * glm::dot(lightDir, surfaceNorm) * surfaceNorm);
 
-		// diffuse
 		color += glm::max(0.0f, glm::dot(lightDir, surfaceNorm)) * material->getDiffuse() * light->colour;
 
-		// specular
 		color += glm::pow(std::max(0.0, (double)glm::dot(reflection, viewDir)), material->getShininess()) * material->getSpecular() * light->colour;
 	}
 	// std::cout << color.x << color.y << color.z << std::endl;

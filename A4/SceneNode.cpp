@@ -145,6 +145,9 @@ bool SceneNode::intersect(Ray& ray, IntersectionData& data) {
 		if (child->intersect(ray, data)) {
 			intersected = true;
 		}
+		if (intersected && ray.type == RayType::Shadow) {
+			return true;
+		}
 	}
 
 	if (intersected) {
