@@ -31,7 +31,7 @@ sphere:set_material(mat2)
 
 pyramid = gr.mesh('pyramid', 'pyramid.obj')
 pyramid:rotate("x", -90)
-pyramid:scale(5.5, 5.5, 5.5)
+pyramid:scale(7, 7, 7)
 pyramid:translate(-3, 0, 12)
 pyramid:set_material(pyramidColor)
 
@@ -95,24 +95,29 @@ ball:translate(0.5, 1.2, 0.5)
 ball:set_material(mat2)
 column:add_child(ball)
 
-
 crystal = gr.mesh("crystal", 'crystals.obj')
 crystal:set_material(mat3)
 crystal:rotate("y", 150)
-crystal:scale(0.25, 0.25, 0.25)
-crystal:translate(-4,0.5, 17)
+crystal:scale(0.35, 0.35, 0.35)
+crystal:translate(-5, 0.0, 17)
 
 crystal1 = gr.mesh("crystal", 'crystals.obj')
-crystal1:rotate("y", -70)
 crystal1:set_material(crystalColor)
+crystal1:rotate("y", -70)
 crystal1:scale(0.25, 0.25, 0.25)
-crystal1:translate(4.5, 0.5, 17)
-
+crystal1:translate(5, 0.5, 17)
 
 crystal2 = gr.mesh("crystal", 'crystals.obj')
 crystal2:set_material(redColor)
+crystal2:rotate("y", 70)
 crystal2:scale(0.25, 0.25, 0.25)
-crystal2:translate(0, 0.5, 17)
+crystal2:translate(-1, 0.5, 15)
+
+crystal3 = gr.mesh("crystal", 'crystals.obj')
+crystal3:set_material(houseColor3)
+crystal3:rotate("y", 0)
+crystal3:scale(0.25, 0.25, 0.25)
+crystal3:translate(2, 0.5, 15)
 
 bark = gr.mesh("bark", 'bark.obj')
 bark:set_material(brown)
@@ -138,6 +143,7 @@ scene:add_child(house3)
 scene:add_child(crystal)
 scene:add_child(crystal1)
 scene:add_child(crystal2)
+scene:add_child(crystal3)
 
 gr.render(scene,
    'sample.png', 512, 512,

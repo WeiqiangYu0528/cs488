@@ -266,7 +266,7 @@ int gr_mesh_cmd(lua_State* L)
 	if( i == mesh_map.end() ) {
 		mesh = new Mesh(obj_fname);
 		mesh_map[sfname] = mesh;
-    std::cout << obj_fname << std::endl;
+    // std::cout << obj_fname << std::endl;
 	} else {
 		mesh = i->second;
 	}
@@ -347,7 +347,7 @@ int gr_render_cmd(lua_State* L)
     lua_pop(L, 1);
   }
 
-  std::cout << width << " " << height << std::endl;
+  // std::cout << width << " " << height << std::endl;
 	Image im( width, height);
 	A4_Render(root->node, im, eye, view, up, fov, ambient, lights);
     im.savePng( filename );

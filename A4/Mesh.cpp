@@ -31,8 +31,8 @@ Mesh::Mesh( const std::string& fname )
 	}
 
 
-	std::cout << "Loaded " << m_vertices.size() << " vertices." << std::endl;
-	std::cout << "Loaded " << m_faces.size() << " faces." << std::endl;
+	// std::cout << "Loaded " << m_vertices.size() << " vertices." << std::endl;
+	// std::cout << "Loaded " << m_faces.size() << " faces." << std::endl;
 
 	float x_min = std::numeric_limits<float>::max();
 	float y_min = std::numeric_limits<float>::max();
