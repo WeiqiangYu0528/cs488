@@ -33,6 +33,7 @@ This manual provides additional details and features beyond the assignment speci
 
 ## Extra Feature - Stratified Sampling
 ![Stratified Sampling](StratifiedSampling.png)
+
 As shown in the above picture, the additional feature implemented is Stratified Sampling. This method combines regular sampling (samples on a 4 × 4 grid for each pixel) and random sampling (adding a uniform random number ξ in the range [0, 1) for each sample). The code implementation is as follows:
 
 ```python
@@ -67,15 +68,26 @@ The following image showcases the scene when the bounding box rendering has been
 ![Scene with Bounding Box](sample_box.png)
 
 ## Reference
-####Stratified Sampling:
+
+#### Stratified Sampling:
+
 Peter et al. Fundamentals of Computer Graphics, Third Edition, page 311. CRC Press, 2011.
-####Sky Background
+
+#### Sky Background
+
 https://opengameart.org/content/sky-background
-####Starfield Background
+
+#### Starfield Background
+
 https://500px.com/photo/129251531/nightsky-over-st.-peter-ording-by-redquasar
-####Mario house:
+
+#### Mario house:
+
 https://www.models-resource.com/custom_edited/mariocustoms/model/53072/
-####Crystal
+
+#### Crystal
+
 https://opengameart.org/content/simple-3d-crystals-unwrapped-simple-texture
-####Tree
+
+#### Tree
 https://opengameart.org/content/low-polygon-pine-tree
