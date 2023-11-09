@@ -8,7 +8,7 @@
 #include "ray.hpp"
 
 const double EPSILON = 1e-4;
-const size_t numSamples = 1;
+const size_t numSamples = 4;
 std::random_device rd;
 std::mt19937 gen(rd());
 const float minValue = 0.0f;
@@ -55,8 +55,8 @@ void A4_Render(
 	size_t w = image.width();
 
 	Image backgroundImage;
-	backgroundImage.loadPng("sky.png");
-	// backgroundImage.loadPng("starfield.png");
+	// backgroundImage.loadPng("sky.png");
+	backgroundImage.loadPng("starfield.png");
 	backgroundImage.resize(w, h);
 
 	for (uint y = 0; y < h; ++y) {
@@ -70,8 +70,8 @@ void A4_Render(
 					float sample_x = x + (i + xOffset) / numSamples;
 					float sample_y = y + (j + yOffset) / numSamples;
 					// std::cout << xOffset << " " << yOffset << std::endl;
-					// glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, sample_x, sample_y);
-					glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, x, y);
+					glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, sample_x, sample_y);
+					// glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, x, y);
 					Ray ray(eye, direction, 0.0, RayType::Primary);
 					IntersectionData data;
 					if (root->intersect(ray, data)) {

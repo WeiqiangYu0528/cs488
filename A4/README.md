@@ -47,25 +47,25 @@ for each pixel (i, j) do
 
 #### Examples
 ![nonhier_noalias](nonhier_noalias.png)
-![nonhier_antialias](nonhier_antialias.png)
+![nonhier_antialias](nonhier.png)
 
 ![simple-cows_noalias](simple-cows_noalias.png)
-![simple-cows_antialias](simple-cows_antialias.png)
+![simple-cows_antialias](simple-cows.png)
 
 ![macho-cows_noalias](macho-cows_noalias.png)
-![macho-cows_antialias](macho-cows_antialias.png)
+![macho-cows_antialias](macho-cows.png)
 
 ![sample_noalias](sample_noalias.png)
-![sample_4](sample_4.png)
+![sample_4](sample.png)
 
 
 ## Scene Description
-![Scene](sample_4.png)
+![Scene](sample.png)
 
-In this captivating scene, four Mario houses stand prominently, each adorned with a unique color. At the center of the scene, a gold pyramid commands attention. To its left, a tall tree and an column, crafted from a combination of a sphere and a cube. On the right side of the pyramid, a cat statue presides, accompanied by a ball at its side. The bottom of the scene unveils three distinct crystals, each a visual marvel. The background setting has been transformed into a serene blue sky adorned with gentle white clouds, chosen to complement the scene's aesthetics more fittingly than a starfield picture.
+In this captivating scene, four Mario houses stand prominently, each adorned with a unique color. At the center of the scene, a gold pyramid commands attention. To its left, a tall tree and an column, crafted from a combination of a sphere and a cube. On the right side of the pyramid, a cat statue presides, accompanied by a ball at its side. The bottom of the scene unveils four distinct crystals, each a visual marvel. The background setting has been transformed into a serene blue sky adorned with gentle white clouds, chosen to complement the scene's aesthetics more fittingly than a starfield picture.
 
 The following image showcases the scene when the bounding box rendering has been turned on.
-![Scene with Bounding Box](sample_box.png)
+![Scene with Bounding Box](sample-bb.png)
 
 ## Reference
 
