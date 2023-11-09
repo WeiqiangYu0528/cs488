@@ -37,9 +37,4 @@ void getDirection(
 	double fovy, size_t w, size_t h, float x, float y,
 	glm::vec3& direction);
 
-void getDirection(
-	glm::vec3 eye, glm::vec3 view, glm::vec3 up,
-	double fovy, size_t w, size_t h, float x, float y,
-	glm::vec3& direction);
-
 float randomFloat();
