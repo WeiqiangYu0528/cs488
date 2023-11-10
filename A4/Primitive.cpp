@@ -112,31 +112,24 @@ NonhierBoxExtension::NonhierBoxExtension(const glm::vec3& min_pos, const glm::ve
 }
 bool NonhierBoxExtension::intersect(Ray& ray, IntersectionData& data) {
     glm::vec3 invdir(1.0f / ray.direction.x, 1.0f / ray.direction.y, 1.0f / ray.direction.z);
-    glm::vec3 normal, normalx, normaly, normalz;
+    glm::vec3 normal;
 
     double t_min, t_max, t_xmin, t_xmax, t_ymin, t_ymax, t_zmin, t_zmax;
 
     if (invdir.x >= 0) {
         t_xmin = (min_pos.x - ray.origin.x) * invdir.x;
         t_xmax = (max_pos.x - ray.origin.x) * invdir.x;
-        normalx = glm::vec3(-1.0f, 0.0f, 0.0f);
     } else {
         t_xmin = (max_pos.x - ray.origin.x) * invdir.x;
         t_xmax = (min_pos.x - ray.origin.x) * invdir.x;
-        normalx = glm::vec3(1.0f, 0.0f, 0.0f);
     }
-
-    t_min = t_xmin;
-    normal = normalx;
 
     if (invdir.y >= 0) {
         t_ymin = (min_pos.y - ray.origin.y) * invdir.y;
         t_ymax = (max_pos.y - ray.origin.y) * invdir.y;
-        normaly = glm::vec3(0.0f, -1.0f, 0.0f);
     } else {
         t_ymin = (max_pos.y - ray.origin.y) * invdir.y;
         t_ymax = (min_pos.y - ray.origin.y) * invdir.y;
-        normaly = glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
 
@@ -144,36 +137,50 @@ bool NonhierBoxExtension::intersect(Ray& ray, IntersectionData& data) {
         return false;
     }
 
-    if (t_xmin < t_ymin) {
-        t_min = t_ymin;
-        normal = normaly;
-    }
+    t_min = std::max(t_xmin, t_ymin);
     t_max = std::min(t_xmax, t_ymax);
 
     if (invdir.z >= 0) {
         t_zmin = (min_pos.z - ray.origin.z) * invdir.z;
         t_zmax = (max_pos.z - ray.origin.z) * invdir.z;
-        normalz = glm::vec3(0.0f, 0.0f, -1.0f);
     } else {
         t_zmin = (max_pos.z - ray.origin.z) * invdir.z;
         t_zmax = (min_pos.z - ray.origin.z) * invdir.z;
-        normalz = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     if ((t_min > t_zmax) || (t_zmin > t_max)){
         return false;
     }
 
-    if (t_zmin > t_min) {
-        t_min = t_zmin;
-        normal = normalz;
+    t_min = std::max(t_min, t_zmin);
+    t_max = std::min(t_max, t_zmax);
+
+    if (t_min < 0) {
+        t_min = t_max;
+        if (t_min < 0) {
+            return false;
+        }
+    }
+
+    if (t_min == t_xmin) {
+        normal = glm::vec3(-1.0f, 0.0f, 0.0f) * invdir.x;
+    } else if (t_min == t_ymin) {
+        normal = glm::vec3(0.0f, -1.0f, 0.0f) * invdir.y;
+    } else if (t_min == t_zmin) {
+        normal =  glm::vec3(0.0f, 0.0f, -1.0f) * invdir.z;
+    } else if (t_min == t_xmax) {
+        normal = glm::vec3(1.0f, 0.0f, 0.0f) * invdir.x;
+    } else if (t_min == t_ymax) {
+        normal = glm::vec3(0.0f, 1.0f, 0.0f) * invdir.y;
+    } else if (t_min == t_zmax) {
+        normal = glm::vec3(0.0f, 0.0f, 1.0f) * invdir.z;
     }
 
     bool intersected = t_min > ray.t_lower_bound && t_min < data.t;
     if (intersected) {
         data.t = t_min;
         data.position = ray.getPosition(t_min);
-        data.normal = normal;
+        data.normal = glm::normalize(normal);
         // std::cout << data.normal.x << " " << data.normal.y << " " << data.normal.z << std::endl;
     }
 

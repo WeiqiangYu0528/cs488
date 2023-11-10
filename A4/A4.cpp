@@ -7,7 +7,8 @@
 #include "PhongMaterial.hpp"
 #include "ray.hpp"
 
-const double EPSILON = 1e-4;
+const double EPSILON1 = 1e-1;
+const double EPSILON2 = 0;
 const size_t numSamples = 4;
 std::random_device rd;
 std::mt19937 gen(rd());
@@ -95,7 +96,7 @@ void A4_Render(
 
 glm::vec3 getDirection(const glm::vec3& eye, const glm::vec3& view, const glm::vec3& up, double fovy,
 					   size_t width, size_t height, float x, float y) {
-	glm::vec3 lookat = glm::normalize(view - eye);
+	glm::vec3 lookat = glm::normalize(view);
 	glm::vec3 right = glm::normalize(glm::cross(lookat, up));
 	glm::vec3 camera_up = glm::normalize(glm::cross(right, lookat));
 	float d = (height / 2.0) / tanf(glm::radians(fovy) * 0.5);
@@ -116,7 +117,7 @@ glm::vec3 getColor(SceneNode * root, IntersectionData& data, const glm::vec3 & e
 	glm::vec3 viewDir = glm::normalize(eye - data.position);
 	for (Light* light: lights) {
 		glm::vec3 lightDir = glm::normalize(light->position - data.position);
-		Ray shadowRay(data.position, light->position - data.position, EPSILON, RayType::Shadow);
+		Ray shadowRay(data.position + lightDir * EPSILON1, lightDir, EPSILON2, RayType::Shadow);
 		IntersectionData shadowData;
 		if (root->intersect(shadowRay, shadowData)) {
 			continue;
@@ -130,7 +131,6 @@ glm::vec3 getColor(SceneNode * root, IntersectionData& data, const glm::vec3 & e
 		color += material->getSpecular() * glm::pow(glm::max(0.0f, glm::dot(reflection, viewDir)), material->getShininess()) * attenuatedLight;
 
 	}
-	// std::cout << color.x << color.y << color.z << std::endl;
 	return color;
 }
 

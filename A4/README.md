@@ -56,13 +56,13 @@ for each pixel (i, j) do
 ![macho-cows_antialias](macho-cows.png)
 
 ![sample_noalias](sample_noalias.png)
-![sample_4](sample.png)
+![sample](sample.png)
 
 
 ## Scene Description
 ![Scene](sample.png)
 
-In this captivating scene, four Mario houses stand prominently, each adorned with a unique color. At the center of the scene, a gold pyramid commands attention. To its left, a tall tree and an column, crafted from a combination of a sphere and a cube. On the right side of the pyramid, a cat statue presides, accompanied by a ball at its side. The bottom of the scene unveils four distinct crystals, each a visual marvel. The background setting has been transformed into a serene blue sky adorned with gentle white clouds, chosen to complement the scene's aesthetics more fittingly than a starfield picture.
+In this captivating scene, four Mario houses stand prominently, each adorned with a unique color. At the center of the scene, a gold pyramid commands attention. To its left, a tall tree and an column, crafted from a combination of a sphere and a cube. On the right side of the pyramid, a cat statue presides, accompanied by a ball and a cube at its side. The bottom of the scene unveils four distinct crystals, each a visual marvel. The background setting has been transformed into a serene blue sky adorned with gentle white clouds, chosen to complement the scene's aesthetics more fittingly than a starfield picture.
 
 The following image showcases the scene when the bounding box rendering has been turned on.
 ![Scene with Bounding Box](sample-bb.png)
