@@ -2,6 +2,7 @@
 
 #include "Perlin.hpp"
 #include <iostream>
+#include <ctime>
 
 Perlin::Perlin() : randf(minValue, maxValue)
 {

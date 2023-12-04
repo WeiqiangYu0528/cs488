@@ -13,7 +13,7 @@
 
 const double EPSILON1 = 5e-1;
 const double EPSILON2 = 0;
-const size_t numSamples = 2;
+const size_t numSamples = 4;
 const size_t numGlossySamples = 5;
 const size_t maxDepth = 4;
 const float minValue = 0.0f;
