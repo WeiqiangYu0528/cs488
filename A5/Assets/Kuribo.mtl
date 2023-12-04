@@ -1,0 +1,32 @@
+# Blender 3.6.5 MTL File: 'None'
+# www.blender.org
+
+newmtl KuriboEnv_Mat_v
+Ns 30.000000
+Ka 0.300000 0.300000 0.300000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd Kuribo.png
+
+newmtl KuriboEye_Mat_v
+Ns 30.000000
+Ka 0.300000 0.300000 0.300000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd KuriboEye.0.png
+
+newmtl Kuribo_Mat_v
+Ns 30.000000
+Ka 0.300000 0.300000 0.300000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd Kuribo.png
