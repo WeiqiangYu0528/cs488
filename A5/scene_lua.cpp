@@ -343,6 +343,31 @@ int gr_nh_box_cmd(lua_State* L)
   return 1;
 }
 
+// Create a non-hierarchical rectangle node
+extern "C"
+int gr_nh_rect_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+
+  glm::vec3 min_pos, max_pos, size;
+  get_tuple(L, 2, &min_pos[0], 3);
+  get_tuple(L, 3, &size[0], 3);
+  max_pos = min_pos + size;
+  std::cout << min_pos.x << " " << min_pos.y << " " << min_pos.z << std::endl;
+  std::cout << max_pos.x << " " << max_pos.y << " " << max_pos.z << std::endl;
+  data->node = new GeometryNode(name, new NonhierBoxExtension(min_pos, max_pos));
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 // Create a non-hierarchical plane node
 extern "C"
 int gr_nh_plane_cmd(lua_State* L)
@@ -782,6 +807,7 @@ static const luaL_Reg grlib_functions[] = {
   {"plane", gr_plane_cmd},
   {"nh_sphere", gr_nh_sphere_cmd},
   {"nh_box", gr_nh_box_cmd},
+  {"nh_rect", gr_nh_rect_cmd},
   {"nh_cylinder", gr_nh_cylinder_cmd},
   {"nh_cone", gr_nh_cone_cmd},
   {"nh_plane", gr_nh_plane_cmd},

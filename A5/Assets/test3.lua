@@ -6,8 +6,8 @@ purple = gr.material({0.56, 0.50, 0.91}, {0.56, 0.50, 0.91}, {0.5, 0.4, 0.8}, 25
 white = gr.material({0.73, 0.73, 0.73}, {0.73, 0.73, 0.73}, {0.1, 0.1, 0.1}, 25)
 glass = gr.material({0.05, 0.05, 0.05}, {0.05, 0.05, 0.05}, {0.7, 0.7, 0.7},  25)
 
-blue = gr.material({0.1386, 0.1327, 0.65}, {0.1386, 0.1327, 0.65}, {0.1, 0.05, 0.5}, 25)
-red = gr.material({0.65, 0.05, 0.05}, {0.65, 0.05, 0.05}, {0.1, 0.1, 0.1}, 25)
+blue = gr.material({0.25, 0.25, 0.25}, {0.15, 0.15, 0.45}, {0.1, 0.1, 0.1}, 25)
+red = gr.material({0.25, 0.25, 0.25}, {0.45, 0.15, 0.2}, {0.1, 0.1, 0.1}, 25)
 green = gr.material({0.24, 0.85, 0.3}, {0.24, 0.85, 0.3}, {0.1, 0.1, 0.1}, 25)
 grey = gr.material({0.4649, 0.4823, 0.5002}, {0.4649, 0.4823, 0.5002}, {0.3, 0.3, 0.3}, 25)
 backgrey = gr.material({0.44, 0.44, 0.44}, {0.44, 0.44, 0.44}, {0.3, 0.3, 0.3}, 25)
@@ -47,22 +47,28 @@ ceiling:translate(-25, 30, -35)
 ceiling:set_material(grey)
 scene:add_child(ceiling)
 
+leftwall = gr.cube('leftwall')
+leftwall:scale(1, 200, 200)
+leftwall:translate(-20, -35, -50)
+leftwall:set_material(red)
+scene:add_child(leftwall)
+
+rightwall = gr.cube('rightwall')
+rightwall:scale(1, 200, 200)
+rightwall:translate(20, -35, -50)
+rightwall:set_material(blue)
+scene:add_child(rightwall)
+
 -- light = gr.nh_sphere('light', {0, 7, 8}, 1)
 -- light:set_material(mat1)
 -- scene:add_child(light)
 
-white_light = gr.light({-6, 30.0, -14}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 15, 15, 15, {125, 125, 125}, {1, 0, 0})
+white_light = gr.light({-10, 28.0, -20}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 20, 2, 20, {640, 640, 640}, {1, 0, 0})
 -- white_light = gr.light({-6, 30.0, -14}, {1, 0, 0}, {0, 0, 1}, 15, 15, {1, 1, 1}, {1, 0, 0})
-lightpanel = gr.nh_box('lightpanel', {-6, 30.0, -14}, {0, -1, 0}, 15)
+lightpanel = gr.nh_rect('lightpanel', {-10, 28.0, -20}, {20, 2, 20})
 lightpanel:set_material(white)
 lightpanel:set_illumination(white_light)
 scene:add_child(lightpanel)
-
-
--- lightpanel = gr.nh_box('lightpanel', {-2, 18.0, -6}, {0, -1, 0}, 6)
--- lightpanel:set_material(white)
--- lightpanel:set_illumination(white_light)
--- scene:add_child(lightpanel)
 
 gr.render(scene, 'test3.png', 512, 512,
 	  {1, 12, 48}, {0, 0, -1}, {0, 1, 0}, 50,

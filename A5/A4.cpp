@@ -13,9 +13,9 @@
 
 const double EPSILON1 = 5e-1;
 const double EPSILON2 = 0;
-const size_t numSamples = 4;
+const size_t numSamples = 50;
 const size_t numGlossySamples = 5;
-const size_t maxDepth = 4;
+const size_t maxDepth = 10;
 const float minValue = 0.0f;
 const float maxValue = 0.9999999999f;
 const float PI = 3.1415926f;
@@ -101,23 +101,23 @@ void A4_Render(
 						// glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, x, y);
 						Ray ray(eye, direction, 0.0, RayType::Primary);
 						IntersectionData data;
-						// if (root->intersect(ray, data)) {
-						// 	glm::vec3 inverseDir = -direction;
-						// 	Material* material = data.material;
-						// 	if (material->hasEmission()) {
-						// 		color += material->getDiffuse(data.position, data.uv, data.img_name);
-						// 	} else {
-						// 		color += material->getDiffuse(data.position, data.uv, data.img_name) * shade(root, data.position, inverseDir, data.normal, material, lights);
-						// 	}
-						// } else {
-						// 	color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
-						// }
-						glm::vec3 c = getColor(root, ray, data, eye, ambient, lights, 1.0, 1);
-						if (c == glm::vec3(0.0)) {
-							color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
+						if (root->intersect(ray, data)) {
+							glm::vec3 inverseDir = -direction;
+							Material* material = data.material;
+							if (material->hasEmission()) {
+								color += material->getDiffuse(data.position, data.uv, data.img_name);
+							} else {
+								color += material->getDiffuse(data.position, data.uv, data.img_name) * shade(root, data.position, inverseDir, data.normal, material, lights);
+							}
 						} else {
-							color += c;
+							color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
 						}
+						// glm::vec3 c = getColor(root, ray, data, eye, ambient, lights, 1.0, 1);
+						// if (c == glm::vec3(0.0)) {
+						// 	color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
+						// } else {
+						// 	color += c;
+						// }
 					}
 				}
 				
@@ -372,8 +372,8 @@ glm::vec3 shade(SceneNode * root, glm::vec3& pos, glm::vec3& direction, glm::vec
 	root->intersect(directRay, directData);
 
 	// test 1
-	// if (glm::length(directData.position - pos) - r > -EPSILON1 ) {
-	// 	directLight = lightColor * fr_diffuse * m->getDiffuse(pos, uv, name) * glm::dot(lightDir, norm) * glm::dot(-lightDir, lightNorm) / (r * r) / (lightPdf);
+	// if (glm::length(directData.position - pos) - r > 1e-1 ) {
+	// 	directLight = lightColor * fr_diffuse * m->getDiffuse(pos, uv, name) * glm::dot(lightDir, norm) * std::max(0.0f, glm::dot(-lightDir, directData.normal)) / (r * r) / (lightPdf);
 	// }
 	if (abs(glm::length(directData.position - pos) - r ) <= 1e-1 ) {
 		directLight = lightColor * fr_diffuse * m->getDiffuse(pos, uv, name) * glm::dot(lightDir, norm) * std::max(0.0f, glm::dot(-lightDir, directData.normal)) / (r * r) / (lightPdf);
