@@ -140,14 +140,14 @@ scene:add_child(kuribo)
 
 cylinder = gr.cylinder('cylinder')
 cylinder:scale(3.5, 5, 3.5)
-cylinder:translate(38, 23, 92)
+cylinder:translate(38, 14, 67)
 cylinder:set_material(verticalPerlinTexture)
 cylinder:set_perlin(1, 1)
 scene:add_child(cylinder)
 
 cone = gr.cone("cone")
 cone:scale(5.5, 10, 5.5)
-cone:translate(50, 19, 73)
+cone:translate(50, 18, 70)
 cone:set_material(horizontalPerlinTexture)
 cone:set_perlin(1, 0)
 scene:add_child(cone)
@@ -166,13 +166,13 @@ Eevee:set_material(eeveeTexture)
 Eevee:set_image()
 scene:add_child(Eevee)
 
-white_light = gr.light({20, 80, 150}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 2, 2, 2, {1, 1, 1}, {1, 0, 0})
+white_light = gr.light({20, 80, 150}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 3, 3, 3, {1, 1, 1}, {1, 0, 0})
 
-lightpanel = gr.nh_box('lightpanel', {20, 80, 150}, 2)
+lightpanel = gr.nh_box('lightpanel', {20, 80, 150}, 3)
 lightpanel:set_material(white)
 lightpanel:set_illumination(white_light)
 scene:add_child(lightpanel)
 
-gr.render(scene, 'final.png', 512, 512,
+gr.render(scene, 'final.png', 1024, 1024,
 	  {60, 50, 200}, {0, 0, -1}, {0, 1, 0}, 50,
 	  {1, 1, 1}, {white_light})
