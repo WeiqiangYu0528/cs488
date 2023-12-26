@@ -48,6 +48,8 @@ scene:add_child(ceiling)
 -- white_light = gr.light({1.5, 8, 35},)
 white_light = gr.light({1.5, 8, 35}, {0, 0, 0}, {0, 0, 0}, 1, 1, {1, 1, 1}, {1, 0, 0})
 
+
+
 gr.render(scene, 'kuribo.png', 1024, 1024,
 	  {1, 5, 35}, {0, 0, -1}, {0, 1, 0}, 50,
 	  {0.4, 0.4, 0.4}, {white_light})

@@ -1,25 +1,25 @@
-# CS488 Fall 2023 Assignment 4 - README
+# CS488 Fall 2023 Final Project - README
 
 ---
 
 ## Introduction
 
-This README provides instructions for compiling and running the CS488/688 assignment 4 and additional information about its features.
+This README provides instructions for compiling and running the CS488/688 final project and additional information about its features.
 
 ---
 
 ## Compilation
 To compile and run the program, follow these steps:
 
-1. **Unzip the A4.zip File:** 
+1. **Unzip the A5.zip File:** 
 
 2. **Execute default premake4/make combination:** 
 
     ```bash
-    $ cd A4
+    $ cd A5
     $ premake4 gmake
     $ make
-    $ ./A4 ./Assets/sample.lua
+    $ ./A4 ./Assets/final.lua
     ```
 
 I've accomplished this assignment on a Mac M1 and verified the code's functionality on the lab machine gl02.
@@ -31,63 +31,52 @@ I've accomplished this assignment on a Mac M1 and verified the code's functional
 
 This manual provides additional details and features beyond the assignment specification.
 
-## Extra Feature - Stratified Sampling
-![Stratified Sampling](StratifiedSampling.png)
+## Objectives
 
-As shown in the above picture, the additional feature implemented is Stratified Sampling. This method combines regular sampling (samples on a 4 × 4 grid for each pixel) and random sampling (adding a uniform random number ξ in the range [0, 1) for each sample). The code implementation is as follows:
+1. Additional primitives (Cylinder, Cone, Plane) and more mesh objects (Eevee, Goomba, Nemo)
 
-```python
-for each pixel (i, j) do 
-    c=0
-    for p = 0 to n − 1 do
-        for q = 0 to n − 1 do
-            c = c + ray-color(i + (p + ξ)/n, j + (q + ξ)/n)
-    c_{ij} = c/(n^2)
-```
+2. Specular reflection
 
-#### Examples
-![nonhier_noalias](nonhier_noalias.png)
-![nonhier_antialias](nonhier.png)
+3. Glossy reflection
 
-![simple-cows_noalias](simple-cows_noalias.png)
-![simple-cows_antialias](simple-cows.png)
+4. Refraction
 
-![macho-cows_noalias](macho-cows_noalias.png)
-![macho-cows_antialias](macho-cows.png)
+5. Glossy transmission
 
-![sample_noalias](sample_noalias.png)
-![sample](sample.png)
+6. Texture mapping (UV Mapping)
 
+7. Perlin Noise
 
-## Scene Description
-![Scene](sample.png)
+8. Soft shadows
 
-In this captivating scene, four Mario houses stand prominently, each adorned with a unique color. At the center of the scene, a gold pyramid commands attention. To its left, a tall tree and an column, crafted from a combination of a sphere and a cube. On the right side of the pyramid, a cat statue presides, accompanied by a ball and a cube at its side. The bottom of the scene unveils four distinct crystals, each a visual marvel. The background setting has been transformed into a serene blue sky adorned with gentle white clouds, chosen to complement the scene's aesthetics more fittingly than a starfield picture.
+9. Phong Shading(Normal Interpolation)
 
-The following image showcases the scene when the bounding box rendering has been turned on.
-![Scene with Bounding Box](sample-bb.png)
+10. Final scene
+
+## Extra Objectives
+
+1. Multi-threading
+2. Global Illumination(Monte-Carlo Ray Tracing)
 
 ## Reference
-
-#### Stratified Sampling:
-
-Peter et al. Fundamentals of Computer Graphics, Third Edition, page 311. CRC Press, 2011.
-
-#### Sky Background
-
-https://opengameart.org/content/sky-background
 
 #### Starfield Background
 
 https://500px.com/photo/129251531/nightsky-over-st.-peter-ording-by-redquasar
 
-#### Mario house:
+#### Nemo Fish:
 
-https://www.models-resource.com/custom_edited/mariocustoms/model/53072/
+https://sketchfab.com/3d-models/dorys-reef-hd-nemo-f4f5eb4ea86044fcae7b383d2f1788e9
 
-#### Crystal
+#### Goomba
 
-https://opengameart.org/content/simple-3d-crystals-unwrapped-simple-texture
+https://www.models-resource.com/wii/supermariogalaxy/model/1022/
 
-#### Tree
-https://opengameart.org/content/low-polygon-pine-tree
+#### Boat
+https://sketchfab.com/3d-models/herculaneum-boat-roman-boat-fd84e8e9cf184426b1701e80c9018067
+
+### Eevee
+https://www.models-resource.com/3ds/pokemonxy/model/8614/
+
+#### Stone Texture 
+https://www.textures.com/download/3DScans0543/136328

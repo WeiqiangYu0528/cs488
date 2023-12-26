@@ -57,7 +57,11 @@ ceiling:translate(-25, 18, -30)
 ceiling:set_material(grey)
 scene:add_child(ceiling)
 
-white_light = gr.light({2, 5, 10}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 2, 2, 2, {1, 1, 1}, {1, 0, 0})
+white_light = gr.light({2, 5, 20}, {0.25, 0, 0}, {0, 0.25, 0}, {0, 0, 0.25}, 2, 2, 2, {1, 1, 1}, {1, 0, 0})
+lightpanel = gr.nh_rect('lightpanel', {2, 5, 20}, {0.5, 0.5, 0.5})
+lightpanel:set_material(white)
+lightpanel:set_illumination(white_light)
+scene:add_child(lightpanel)
 
 gr.render(scene, 'reflection.png', 512, 512,
 	  {0, 5, 20}, {0, 0, -1}, {0, 1, 0}, 50,

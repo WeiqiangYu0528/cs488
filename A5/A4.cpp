@@ -13,15 +13,15 @@
 
 const double EPSILON1 = 5e-1;
 const double EPSILON2 = 0;
-const size_t numSamples = 50;
+const size_t numSamples = 1;
 const size_t numGlossySamples = 5;
-const size_t maxDepth = 10;
+const size_t maxDepth = 4;
 const float minValue = 0.0f;
 const float maxValue = 0.9999999999f;
 const float PI = 3.1415926f;
 const float prob = 0.6f;
 float fr_diffuse = 1.0 / glm::pi<float>();
-
+// #define PATH_TRACING
 Random randf(minValue, maxValue);
 
 void A4_Render(
@@ -101,6 +101,7 @@ void A4_Render(
 						// glm::vec3 direction = getDirection(eye, view, up, fovy, w, h, x, y);
 						Ray ray(eye, direction, 0.0, RayType::Primary);
 						IntersectionData data;
+						#ifdef PATH_TRACING
 						if (root->intersect(ray, data)) {
 							glm::vec3 inverseDir = -direction;
 							Material* material = data.material;
@@ -112,12 +113,14 @@ void A4_Render(
 						} else {
 							color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
 						}
-						// glm::vec3 c = getColor(root, ray, data, eye, ambient, lights, 1.0, 1);
-						// if (c == glm::vec3(0.0)) {
-						// 	color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
-						// } else {
-						// 	color += c;
-						// }
+						#else
+						glm::vec3 c = getColor(root, ray, data, eye, ambient, lights, 1.0, 1);
+						if (c == glm::vec3(0.0)) {
+							color += glm::vec3(backgroundImage(x, y, 0), backgroundImage(x, y, 1), backgroundImage(x, y, 2));
+						} else {
+							color += c;
+						}
+						#endif
 					}
 				}
 				
@@ -375,7 +378,7 @@ glm::vec3 shade(SceneNode * root, glm::vec3& pos, glm::vec3& direction, glm::vec
 	// if (glm::length(directData.position - pos) - r > 1e-1 ) {
 	// 	directLight = lightColor * fr_diffuse * m->getDiffuse(pos, uv, name) * glm::dot(lightDir, norm) * std::max(0.0f, glm::dot(-lightDir, directData.normal)) / (r * r) / (lightPdf);
 	// }
-	if (abs(glm::length(directData.position - pos) - r ) <= 1e-1 ) {
+	if (directData.material->hasEmission()) {
 		directLight = lightColor * fr_diffuse * m->getDiffuse(pos, uv, name) * glm::dot(lightDir, norm) * std::max(0.0f, glm::dot(-lightDir, directData.normal)) / (r * r) / (lightPdf);
 	}
 

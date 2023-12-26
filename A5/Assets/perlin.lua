@@ -45,6 +45,11 @@ ceiling:set_material(grey)
 scene:add_child(ceiling)
 
 white_light = gr.light({1.5, 8, 35}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, 2, 2, 2, {1, 1, 1}, {1, 0, 0})
+lightpanel = gr.nh_rect('lightpanel', {1.5, 8, 35}, {2, 2, 2})
+lightpanel:set_material(white)
+lightpanel:set_illumination(white_light)
+scene:add_child(lightpanel)
+
 
 gr.render(scene, 'perlin.png', 512, 512,
 	  {1, 5, 35}, {0, 0, -1}, {0, 1, 0}, 50,
