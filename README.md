@@ -1,5 +1,6 @@
 # Webpage for CS488/688 Project!
-https://weiqiangyu0528.github.io/cs688/
+
+Project website: https://weiqiangyu0528.github.io/cs688/
 
 ---
 
